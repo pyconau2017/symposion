@@ -41,10 +41,10 @@ def proposals_generator(request, queryset, user_pk=None, check_speaker=True):
 
         obj.comment_count = obj.result.comment_count
         obj.total_votes = obj.result.vote_count
+        obj.plus_two = obj.result.plus_two
         obj.plus_one = obj.result.plus_one
-        obj.plus_zero = obj.result.plus_zero
-        obj.minus_zero = obj.result.minus_zero
         obj.minus_one = obj.result.minus_one
+        obj.minus_two = obj.result.minus_two
         lookup_params = dict(proposal=obj)
 
         if user_pk:
@@ -144,21 +144,21 @@ def review_admin(request, section_slug):
 
                 user.comment_count = Review.objects.filter(user=user).count()
                 user.total_votes = LatestVote.objects.filter(user=user).count()
+                user.plus_two = LatestVote.objects.filter(
+                    user=user,
+                    vote=LatestVote.VOTES.PLUS_TWO
+                ).count()
                 user.plus_one = LatestVote.objects.filter(
                     user=user,
                     vote=LatestVote.VOTES.PLUS_ONE
                 ).count()
-                user.plus_zero = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.PLUS_ZERO
-                ).count()
-                user.minus_zero = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_ZERO
-                ).count()
                 user.minus_one = LatestVote.objects.filter(
                     user=user,
                     vote=LatestVote.VOTES.MINUS_ONE
+                ).count()
+                user.minus_two = LatestVote.objects.filter(
+                    user=user,
+                    vote=LatestVote.VOTES.MINUS_TWO
                 ).count()
 
                 yield user
@@ -268,10 +268,10 @@ def review_detail(request, pk):
 
     proposal.comment_count = proposal.result.comment_count
     proposal.total_votes = proposal.result.vote_count
+    proposal.plus_two = proposal.result.plus_two
     proposal.plus_one = proposal.result.plus_one
-    proposal.plus_zero = proposal.result.plus_zero
-    proposal.minus_zero = proposal.result.minus_zero
     proposal.minus_one = proposal.result.minus_one
+    proposal.minus_two = proposal.result.minus_two
 
     reviews = Review.objects.filter(proposal=proposal).order_by("-submitted_at")
     messages = proposal.messages.order_by("submitted_at")
@@ -319,22 +319,22 @@ def review_status(request, section_slug=None, key=None):
         queryset = queryset.filter(kind__section__slug=section_slug)
 
     proposals = {
-        # proposals with at least VOTE_THRESHOLD reviews and at least one +1 and no -1s, sorted by
+        # proposals with at least VOTE_THRESHOLD reviews and at least one +2 and no -2s, sorted by
         # the 'score'
-        "positive": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_one__gt=0,
-                                    result__minus_one=0).order_by("-result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and at least one -1 and no +1s, reverse
+        "positive": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_two__gt=0,
+                                    result__minus_two=0).order_by("-result__score"),
+        # proposals with at least VOTE_THRESHOLD reviews and at least one -2 and no +2s, reverse
         # sorted by the 'score'
-        "negative": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_one__gt=0,
-                                    result__plus_one=0).order_by("result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and neither a +1 or a -1, sorted by total
+        "negative": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two__gt=0,
+                                    result__plus_two=0).order_by("result__score"),
+        # proposals with at least VOTE_THRESHOLD reviews and neither a +2 or a -2, sorted by total
         # votes (lowest first)
-        "indifferent": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_one=0,
-                                       result__plus_one=0).order_by("result__vote_count"),
-        # proposals with at least VOTE_THRESHOLD reviews and both a +1 and -1, sorted by total
+        "indifferent": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two=0,
+                                       result__plus_two=0).order_by("result__vote_count"),
+        # proposals with at least VOTE_THRESHOLD reviews and both a +2 and -2, sorted by total
         # votes (highest first)
         "controversial": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD,
-                                         result__plus_one__gt=0, result__minus_one__gt=0)
+                                         result__plus_two__gt=0, result__minus_two__gt=0)
         .order_by("-result__vote_count"),
         # proposals with fewer than VOTE_THRESHOLD reviews
         "too_few": queryset.filter(result__vote_count__lt=VOTE_THRESHOLD)

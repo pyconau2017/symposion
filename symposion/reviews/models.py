@@ -17,22 +17,22 @@ from symposion.schedule.models import Presentation
 
 def score_expression():
     return (
-        (3 * F("plus_one") + F("plus_zero")) -
-        (F("minus_zero") + 3 * F("minus_one"))
+        (2 * F("plus_two") + F("plus_one")) -
+        (F("minus_one") + 2 * F("minus_two"))
     )
 
 
 class Votes(object):
+    PLUS_TWO = "+2"
     PLUS_ONE = "+1"
-    PLUS_ZERO = "+0"
-    MINUS_ZERO = "−0"
     MINUS_ONE = "−1"
+    MINUS_TWO = "−2"
 
     CHOICES = [
-        (PLUS_ONE, _("+1 — Good proposal and I will argue for it to be accepted.")),
-        (PLUS_ZERO, _("+0 — OK proposal, but I will not argue for it to be accepted.")),
-        (MINUS_ZERO, _("−0 — Weak proposal, but I will not argue strongly against acceptance.")),
-        (MINUS_ONE, _("−1 — Serious issues and I will argue to reject this proposal.")),
+        (PLUS_TWO, _("+2 — Good proposal and I will argue for it to be accepted.")),
+        (PLUS_ONE, _("+1 — OK proposal, but I will not argue for it to be accepted.")),
+        (MINUS_ONE, _("−1 — Weak proposal, but I will not argue strongly against acceptance.")),
+        (MINUS_TWO, _("−2 — Serious issues and I will argue to reject this proposal.")),
     ]
 VOTES = Votes()
 
@@ -222,10 +222,10 @@ class ProposalResult(models.Model):
     score = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Score"))
     comment_count = models.PositiveIntegerField(default=0, verbose_name=_("Comment count"))
     vote_count = models.PositiveIntegerField(default=0, verbose_name=_("Vote count"))
+    plus_two = models.PositiveIntegerField(default=0, verbose_name=_("Plus two"))
     plus_one = models.PositiveIntegerField(default=0, verbose_name=_("Plus one"))
-    plus_zero = models.PositiveIntegerField(default=0, verbose_name=_("Plus zero"))
-    minus_zero = models.PositiveIntegerField(default=0, verbose_name=_("Minus zero"))
     minus_one = models.PositiveIntegerField(default=0, verbose_name=_("Minus one"))
+    minus_two = models.PositiveIntegerField(default=0, verbose_name=_("Minus two"))
     accepted = models.NullBooleanField(choices=[
         (True, "accepted"),
         (False, "rejected"),
@@ -244,31 +244,31 @@ class ProposalResult(models.Model):
             result, created = cls._default_manager.get_or_create(proposal=proposal)
             result.comment_count = Review.objects.filter(proposal=proposal).count()
             result.vote_count = LatestVote.objects.filter(proposal=proposal).count()
+            result.plus_two = LatestVote.objects.filter(
+                proposal=proposal,
+                vote=VOTES.PLUS_TWO
+            ).count()
             result.plus_one = LatestVote.objects.filter(
                 proposal=proposal,
                 vote=VOTES.PLUS_ONE
             ).count()
-            result.plus_zero = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.PLUS_ZERO
-            ).count()
-            result.minus_zero = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.MINUS_ZERO
-            ).count()
             result.minus_one = LatestVote.objects.filter(
                 proposal=proposal,
                 vote=VOTES.MINUS_ONE
+            ).count()
+            result.minus_two = LatestVote.objects.filter(
+                proposal=proposal,
+                vote=VOTES.MINUS_TWO
             ).count()
             result.save()
             cls._default_manager.filter(pk=result.pk).update(score=score_expression())
 
     def update_vote(self, vote, previous=None, removal=False):
         mapping = {
+            VOTES.PLUS_TWO: "plus_two",
             VOTES.PLUS_ONE: "plus_one",
-            VOTES.PLUS_ZERO: "plus_zero",
-            VOTES.MINUS_ZERO: "minus_zero",
             VOTES.MINUS_ONE: "minus_one",
+            VOTES.MINUS_TWO: "minus_two",
         }
         if previous:
             if previous == vote:
