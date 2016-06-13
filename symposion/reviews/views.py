@@ -185,7 +185,7 @@ def review_detail(request, pk):
     if not request.user.is_superuser and request.user in speakers:
         return access_not_permitted(request)
 
-    admin = request.user.is_staff
+    admin = request.user.has_perm("reviews.can_manage_%s" % proposal.kind.section.slug)
 
     try:
         latest_vote = LatestVote.objects.get(proposal=proposal, user=request.user)
@@ -208,7 +208,7 @@ def review_detail(request, pk):
                 return redirect(request.path)
             else:
                 message_form = SpeakerCommentForm()
-        elif "message_submit" in request.POST:
+        elif "message_submit" in request.POST and admin:
             message_form = SpeakerCommentForm(request.POST)
             if message_form.is_valid():
 
@@ -282,7 +282,8 @@ def review_detail(request, pk):
         "reviews": reviews,
         "review_messages": messages,
         "review_form": review_form,
-        "message_form": message_form
+        "message_form": message_form,
+        "is_manager": admin
     })
 
 
