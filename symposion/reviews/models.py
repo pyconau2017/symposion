@@ -177,10 +177,10 @@ class Review(models.Model):
 
     def css_class(self):
         return {
+            self.VOTES.PLUS_TWO: "plus-two",
             self.VOTES.PLUS_ONE: "plus-one",
-            self.VOTES.PLUS_ZERO: "plus-zero",
-            self.VOTES.MINUS_ZERO: "minus-zero",
             self.VOTES.MINUS_ONE: "minus-one",
+            self.VOTES.MINUS_TWO: "minus-two",
         }[self.vote]
 
     @property
@@ -210,10 +210,10 @@ class LatestVote(models.Model):
 
     def css_class(self):
         return {
+            self.VOTES.PLUS_TWO: "plus-two",
             self.VOTES.PLUS_ONE: "plus-one",
-            self.VOTES.PLUS_ZERO: "plus-zero",
-            self.VOTES.MINUS_ZERO: "minus-zero",
             self.VOTES.MINUS_ONE: "minus-one",
+            self.VOTES.MINUS_TWO: "minus-two",
         }[self.vote]
 
 
