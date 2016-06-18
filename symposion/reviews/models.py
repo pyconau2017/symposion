@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 from datetime import datetime
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
+
 from django.db import models
 from django.db.models import Q, F
 from django.db.models import Case, When, Value
@@ -126,9 +128,20 @@ class Review(models.Model):
     # No way to encode "-0" vs. "+0" into an IntegerField, and I don't feel
     # like some complicated encoding system.
     vote = models.CharField(max_length=2, blank=True, choices=VOTES.CHOICES, verbose_name=_("Vote"))
-    comment = models.TextField(verbose_name=_("Comment"))
+    comment = models.TextField(
+        blank=True,
+        verbose_name=_("Comment")
+    )
     comment_html = models.TextField(blank=True)
     submitted_at = models.DateTimeField(default=datetime.now, editable=False, verbose_name=_("Submitted at"))
+
+    def clean(self):
+        err = {}
+        if self.vote != VOTES.ABSTAIN and not self.comment.strip():
+            err["comment"] = ValidationError(_("You must provide a comment"))
+
+        if err:
+            raise ValidationError(err)
 
     def save(self, **kwargs):
         self.comment_html = parse(self.comment)
