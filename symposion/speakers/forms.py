@@ -13,6 +13,10 @@ class SpeakerForm(forms.ModelForm):
             "biography",
             "photo",
             "twitter_username",
+            "experience",
+            "accessibility",
+            "travel_assistance",
+            "accommodation_assistance",
         ]
 
     def clean_twitter_username(self):
