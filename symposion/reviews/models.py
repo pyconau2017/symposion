@@ -20,7 +20,7 @@ def score_expression():
         (2 * F("plus_two") + F("plus_one")) -
         (F("minus_one") + 2 * F("minus_two"))
     ) / (
-        F("vote_count") - F("abstain")
+        F("vote_count") - F("abstain") * 1.0
     )
 
 
@@ -276,6 +276,7 @@ class ProposalResult(models.Model):
 
     def update_vote(self, vote, previous=None, removal=False):
         mapping = {
+            VOTES.ABSTAIN: "abstain",
             VOTES.PLUS_TWO: "plus_two",
             VOTES.PLUS_ONE: "plus_one",
             VOTES.MINUS_ONE: "minus_one",
