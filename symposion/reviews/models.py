@@ -19,10 +19,13 @@ def score_expression():
     return (
         (2 * F("plus_two") + F("plus_one")) -
         (F("minus_one") + 2 * F("minus_two"))
+    ) / (
+        F("vote_count") - F("abstain")
     )
 
 
 class Votes(object):
+    ABSTAIN = "0"
     PLUS_TWO = "+2"
     PLUS_ONE = "+1"
     MINUS_ONE = "−1"
@@ -33,6 +36,7 @@ class Votes(object):
         (PLUS_ONE, _("+1 — OK proposal, but I will not argue for it to be accepted.")),
         (MINUS_ONE, _("−1 — Weak proposal, but I will not argue strongly against acceptance.")),
         (MINUS_TWO, _("−2 — Serious issues and I will argue to reject this proposal.")),
+        (ABSTAIN, _("Abstain - I do not want to review this proposal and I do not want to see it again.")),
     ]
 VOTES = Votes()
 
@@ -177,6 +181,7 @@ class Review(models.Model):
 
     def css_class(self):
         return {
+            self.VOTES.ABSTAIN: "abstain",
             self.VOTES.PLUS_TWO: "plus-two",
             self.VOTES.PLUS_ONE: "plus-one",
             self.VOTES.MINUS_ONE: "minus-one",
@@ -210,6 +215,7 @@ class LatestVote(models.Model):
 
     def css_class(self):
         return {
+            self.VOTES.ABSTAIN: "abstain",
             self.VOTES.PLUS_TWO: "plus-two",
             self.VOTES.PLUS_ONE: "plus-one",
             self.VOTES.MINUS_ONE: "minus-one",
@@ -222,6 +228,7 @@ class ProposalResult(models.Model):
     score = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Score"))
     comment_count = models.PositiveIntegerField(default=0, verbose_name=_("Comment count"))
     vote_count = models.PositiveIntegerField(default=0, verbose_name=_("Vote count"))
+    abstain = models.PositiveIntegerField(default=0, verbose_name=_("Abstain"))
     plus_two = models.PositiveIntegerField(default=0, verbose_name=_("Plus two"))
     plus_one = models.PositiveIntegerField(default=0, verbose_name=_("Plus one"))
     minus_one = models.PositiveIntegerField(default=0, verbose_name=_("Minus one"))
@@ -244,6 +251,10 @@ class ProposalResult(models.Model):
             result, created = cls._default_manager.get_or_create(proposal=proposal)
             result.comment_count = Review.objects.filter(proposal=proposal).count()
             result.vote_count = LatestVote.objects.filter(proposal=proposal).count()
+            result.abstain = LatestVote.objects.filter(
+                proposal=proposal,
+                vote=VOTES.ABSTAIN,
+            ).count()
             result.plus_two = LatestVote.objects.filter(
                 proposal=proposal,
                 vote=VOTES.PLUS_TWO
