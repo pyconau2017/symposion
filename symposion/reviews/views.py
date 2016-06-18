@@ -40,6 +40,7 @@ def proposals_generator(request, queryset, user_pk=None, check_speaker=True):
             ProposalResult.objects.get_or_create(proposal=obj)
 
         obj.comment_count = obj.result.comment_count
+        obj.score = obj.result.score
         obj.total_votes = obj.result.vote_count
         obj.plus_two = obj.result.plus_two
         obj.plus_one = obj.result.plus_one
