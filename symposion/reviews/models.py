@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.db.models import Q, F
+from django.db.models import Case, When, Value
 from django.db.models.signals import post_save
 
 from django.contrib.auth.models import User
@@ -16,11 +17,16 @@ from symposion.schedule.models import Presentation
 
 
 def score_expression():
-    return (
+    score = (
         (2 * F("plus_two") + F("plus_one")) -
         (F("minus_one") + 2 * F("minus_two"))
     ) / (
         F("vote_count") - F("abstain") * 1.0
+    )
+
+    return Case(
+        When(vote_count=F("abstain"), then=Value("0")),  # no divide by zero
+        default=score,
     )
 
 
