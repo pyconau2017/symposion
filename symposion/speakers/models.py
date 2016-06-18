@@ -35,22 +35,20 @@ class Speaker(models.Model):
         blank=True,
         help_text=_(u"Your Twitter account")
     )
-    experience = models.TextField(
-        blank=True,
-        help_text=_("Please describe your past speaking experience, or expertise on your given topic."),
-        verbose_name=_("Experience"))
     accessibility = models.TextField(
         blank=True,
         help_text=_("Please describe any special accessibility requirements that you may have."),
         verbose_name=_("Accessibility requirements"))
     travel_assistance = models.BooleanField(
         blank=True,
+        default=False,
         help_text=_("Check this box if you require assistance to travel to Hobart to "
                     "present your proposed sessions."),
         verbose_name=_("Travel assistance required"),
     )
     accommodation_assistance = models.BooleanField(
         blank=True,
+        default=False,
         help_text=_("Check this box if you require us to provide you with student-style "
                     "accommodation in order to present your proposed sessions."),
         verbose_name=_("Accommodation assistance required"),
