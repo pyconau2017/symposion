@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, F
 from django.db.models import Case, When, Value
+from django.db.models import Count
 from django.db.models.signals import post_save
 
 from django.contrib.auth.models import User
@@ -268,57 +269,30 @@ class ProposalResult(models.Model):
     def full_calculate(cls):
         for proposal in ProposalBase.objects.all():
             result, created = cls._default_manager.get_or_create(proposal=proposal)
-            result.comment_count = Review.objects.filter(proposal=proposal).count()
-            result.vote_count = LatestVote.objects.filter(proposal=proposal).count()
-            result.abstain = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.ABSTAIN,
-            ).count()
-            result.plus_two = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.PLUS_TWO
-            ).count()
-            result.plus_one = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.PLUS_ONE
-            ).count()
-            result.minus_one = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.MINUS_ONE
-            ).count()
-            result.minus_two = LatestVote.objects.filter(
-                proposal=proposal,
-                vote=VOTES.MINUS_TWO
-            ).count()
-            result.save()
-            cls._default_manager.filter(pk=result.pk).update(score=score_expression())
+            result.update_vote()
 
-    def update_vote(self, vote, previous=None, removal=False):
-        mapping = {
-            VOTES.ABSTAIN: "abstain",
-            VOTES.PLUS_TWO: "plus_two",
-            VOTES.PLUS_ONE: "plus_one",
-            VOTES.MINUS_ONE: "minus_one",
-            VOTES.MINUS_TWO: "minus_two",
-        }
-        if previous:
-            if previous == vote:
-                return
-            if removal:
-                setattr(self, mapping[previous], models.F(mapping[previous]) + 1)
-            else:
-                setattr(self, mapping[previous], models.F(mapping[previous]) - 1)
-        else:
-            if removal:
-                self.vote_count = models.F("vote_count") - 1
-            else:
-                self.vote_count = models.F("vote_count") + 1
-        if removal:
-            setattr(self, mapping[vote], models.F(mapping[vote]) - 1)
-            self.comment_count = models.F("comment_count") - 1
-        else:
-            setattr(self, mapping[vote], models.F(mapping[vote]) + 1)
-            self.comment_count = models.F("comment_count") + 1
+    def update_vote(self, *a, **k):
+        proposal = self.proposal
+        self.comment_count = Review.objects.filter(proposal=proposal).count()
+        agg = LatestVote.objects.filter(proposal=proposal).values(
+            "vote"
+        ).annotate(
+            count=Count("vote")
+        )
+        vote_count = {}
+        # Set the defaults
+        for option in VOTES.CHOICES:
+            vote_count[option[0]] = 0
+        # Set the actual values if present
+        for d in agg:
+            vote_count[d["vote"]] = d["count"]
+
+        self.abstain = vote_count[VOTES.ABSTAIN]
+        self.plus_two = vote_count[VOTES.PLUS_TWO]
+        self.plus_one = vote_count[VOTES.PLUS_ONE]
+        self.minus_one = vote_count[VOTES.MINUS_ONE]
+        self.minus_two = vote_count[VOTES.MINUS_TWO]
+        self.vote_count = sum(i[1] for i in vote_count.items())
         self.save()
         model = self.__class__
         model._default_manager.filter(pk=self.pk).update(score=score_expression())
