@@ -109,6 +109,7 @@ class Speaker(models.Model):
     def save(self, *args, **kwargs):
         self.biography_html = parse(self.biography)
         self.experience_html = parse(self.experience)
+        self.accessibility_html = parse(self.accessibility)
         return super(Speaker, self).save(*args, **kwargs)
 
     def __str__(self):
