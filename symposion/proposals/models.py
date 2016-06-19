@@ -88,12 +88,8 @@ class ProposalBase(models.Model):
     title = models.CharField(max_length=100, verbose_name=_("Title"))
     abstract = models.TextField(
         _("Abstract"),
-        help_text=_("This will appear in the conference programme. You will "
-                    "have an opportunity to update it once the proposal is "
-                    "accepted, but it should reasonably reflect what you will "
-                    "be presenting, and in any case it will appear as-is on "
-                    "the website in the draft programme. Up to about 500 "
-                    "words. Edit using <a "
+        help_text=_("This will appear in the conference programme. Up to about "
+                    "500 words. Edit using <a "
                     "href='http://daringfireball.net/projects/markdown/basics' " "target='_blank'>Markdown</a>.")
     )
     abstract_html = models.TextField(blank=True)
@@ -121,7 +117,7 @@ class ProposalBase(models.Model):
     )
     technical_requirements_html = models.TextField(blank=True)
 
-    project = models.TextField(
+    project = models.CharField(
         max_length=100,
         blank=True,
         help_text=_("The name of the project you will be talking about."),
