@@ -85,6 +85,12 @@ class Speaker(models.Model):
                     "accommodation in order to present your proposed sessions."),
         verbose_name=_("Accommodation assistance required"),
     )
+    agreement = models.BooleanField(
+        default=False,
+        help_text=_("I agree to the terms and confitions of attendance, and "
+                    "I have read, understood, and agree to act according to "
+                    "the standards set forth in our Code of Conduct ")
+    )
 
     annotation = models.TextField(verbose_name=_("Annotation"))  # staff only
     invite_email = models.CharField(max_length=200, unique=True, null=True, db_index=True, verbose_name=_("Invite_email"))
