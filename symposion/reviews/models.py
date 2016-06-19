@@ -24,11 +24,11 @@ def score_expression():
         (2 * F("plus_two") + F("plus_one")) -
         (F("minus_one") + 2 * F("minus_two"))
     ) / (
-        F("vote_count") - F("abstain") * 1.0
+        F("vote_count") * 1.0
     )
 
     return Case(
-        When(vote_count=F("abstain"), then=Value("0")),  # no divide by zero
+        When(vote_count=0, then=Value("0")),  # no divide by zero
         default=score,
     )
 
@@ -247,6 +247,7 @@ class ProposalResult(models.Model):
     proposal = models.OneToOneField(ProposalBase, related_name="result", verbose_name=_("Proposal"))
     score = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Score"))
     comment_count = models.PositiveIntegerField(default=0, verbose_name=_("Comment count"))
+    # vote_count only counts non-abstain votes.
     vote_count = models.PositiveIntegerField(default=0, verbose_name=_("Vote count"))
     abstain = models.PositiveIntegerField(default=0, verbose_name=_("Abstain"))
     plus_two = models.PositiveIntegerField(default=0, verbose_name=_("Plus two"))
@@ -292,7 +293,7 @@ class ProposalResult(models.Model):
         self.plus_one = vote_count[VOTES.PLUS_ONE]
         self.minus_one = vote_count[VOTES.MINUS_ONE]
         self.minus_two = vote_count[VOTES.MINUS_TWO]
-        self.vote_count = sum(i[1] for i in vote_count.items())
+        self.vote_count = sum(i[1] for i in vote_count.items()) - self.abstain
         self.save()
         model = self.__class__
         model._default_manager.filter(pk=self.pk).update(score=score_expression())
