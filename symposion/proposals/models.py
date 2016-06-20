@@ -86,28 +86,56 @@ class ProposalBase(models.Model):
     kind = models.ForeignKey(ProposalKind, verbose_name=_("Kind"))
 
     title = models.CharField(max_length=100, verbose_name=_("Title"))
-    description = models.TextField(
-        _("Brief Description"),
-        max_length=400,  # @@@ need to enforce 400 in UI
-        help_text=_("If your proposal is accepted this will be made public and printed in the "
-                    "program. Should be one paragraph, maximum 400 characters.")
-    )
     abstract = models.TextField(
-        _("Detailed Abstract"),
-        help_text=_("Detailed outline. Will be made public if your proposal is accepted. Edit "
-                    "using <a href='http://daringfireball.net/projects/markdown/basics' "
-                    "target='_blank'>Markdown</a>.")
+        _("Abstract"),
+        help_text=_("This will appear in the conference programme. Up to about "
+                    "500 words. Edit using <a "
+                    "href='http://daringfireball.net/projects/markdown/basics' " "target='_blank'>Markdown</a>.")
     )
     abstract_html = models.TextField(blank=True)
-    additional_notes = models.TextField(
-        _("Addtional Notes"),
-        blank=True,
-        help_text=_("Anything else you'd like the program committee to know when making their "
-                    "selection: your past experience, etc. This is not made public. Edit using "
-                    "<a href='http://daringfireball.net/projects/markdown/basics' "
+
+    private_abstract = models.TextField(
+        _("Private Abstract"),
+        help_text=_("This will only be shown to organisers and reviewers. You "
+                    "should provide any details about your proposal that you "
+                    "don't want to be public here. Edit using <a " "href='http://daringfireball.net/projects/markdown/basics' "
                     "target='_blank'>Markdown</a>.")
     )
-    additional_notes_html = models.TextField(blank=True)
+    private_abstract_html = models.TextField(blank=True)
+
+    technical_requirements = models.TextField(
+        _("Special Requirements"),
+        blank=True,
+        help_text=_("Speakers will be provided with: Internet access, power, "
+                    "projector, audio.  If you require anything in addition, "
+                    "please list your technical requirements here.  Such as: a "
+                    "static IP address, A/V equipment or will be demonstrating "
+                    "security-related techniques on the conference network. "
+                    "Edit using <a "
+                    "href='http://daringfireball.net/projects/markdown/basics' "
+                    "target='_blank'>Markdown</a>.")
+    )
+    technical_requirements_html = models.TextField(blank=True)
+
+    project = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text=_("The name of the project you will be talking about."),
+    )
+    project_url = models.URLField(
+        _("Project URL"),
+        blank=True,
+        help_text=_("If your project has a webpage, specify the URL here so "
+                    "the committee can find out more about your proposal.")
+    )
+    video_url = models.URLField(
+        _("Video"),
+        blank=True,
+        help_text=_("You may optionally provide us with a link to a video of "
+                    "you speaking at another event, or of a short 'elevator "
+                    "pitch' of your proposed talk.")
+    )
+
     submitted = models.DateTimeField(
         default=now,
         editable=False,
@@ -130,7 +158,8 @@ class ProposalBase(models.Model):
 
     def save(self, *args, **kwargs):
         self.abstract_html = parse(self.abstract)
-        self.additional_notes_html = parse(self.additional_notes)
+        self.private_abstract_html = parse(self.private_abstract)
+        self.technical_requirements_html = parse(self.technical_requirements)
         return super(ProposalBase, self).save(*args, **kwargs)
 
     def can_edit(self):

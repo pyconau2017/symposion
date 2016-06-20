@@ -11,12 +11,20 @@ class SpeakerForm(forms.ModelForm):
         fields = [
             "name",
             "biography",
+            "experience",
             "photo",
+            "telephone",
+            "homepage",
             "twitter_username",
             "accessibility",
             "travel_assistance",
             "accommodation_assistance",
+            "agreement",
         ]
+
+    def __init__(self, *a, **k):
+        super(SpeakerForm, self).__init__(*a, **k)
+        self.fields['agreement'].required = True
 
     def clean_twitter_username(self):
         value = self.cleaned_data["twitter_username"]

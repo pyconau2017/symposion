@@ -24,12 +24,40 @@ class Speaker(models.Model):
     name = models.CharField(verbose_name=_("Name"), max_length=100,
                             help_text=_("As you would like it to appear in the"
                                         " conference program."))
-    biography = models.TextField(blank=True, help_text=_("A little bit about you.  Edit using "
-                                                         "<a href='http://warpedvisions.org/projects/"
-                                                         "markdown-cheat-sheet/target='_blank'>"
-                                                         "Markdown</a>."), verbose_name=_("Biography"))
+    biography = models.TextField(
+        blank=True,
+        help_text=_("This will appear on the conference website and in the "
+                    "programme.  Please write in the third person, eg 'Alice "
+                    "is a Moblin hacker...', 150-200 words. Edit using "
+                    "<a href='http://warpedvisions.org/projects/"
+                    "markdown-cheat-sheet/target='_blank'>"
+                    "Markdown</a>."),
+        verbose_name=_("Biography"),
+    )
     biography_html = models.TextField(blank=True)
+    experience = models.TextField(
+        blank=True,
+        help_text=_("Have you had any experience presenting elsewhere? If so, "
+                    "we'd like to know. Anything you put here will only be "
+                    "seen by the organisers and reviewers; use it to convince "
+                    "them why they should accept your proposal. Edit using "
+                    "<a href='http://warpedvisions.org/projects/"
+                    "markdown-cheat-sheet/target='_blank'>"
+                    "Markdown</a>."),
+        verbose_name=_("Speaking experience"),
+    )
+    experience_html = models.TextField(blank=True)
     photo = models.ImageField(upload_to="speaker_photos", blank=True, verbose_name=_("Photo"))
+    telephone = models.CharField(
+        max_length=15,
+        help_text=_(u"The conference team will need this to contact you "
+                    "during the conference week. If you don't have one, or do "
+                    "not wish to provide it, then enter NONE in this field.")
+    )
+    homepage = models.URLField(
+        blank=True,
+        help_text=_(u"Your home page, if you have one")
+    )
     twitter_username = models.CharField(
         max_length=15,
         blank=True,
@@ -37,8 +65,12 @@ class Speaker(models.Model):
     )
     accessibility = models.TextField(
         blank=True,
-        help_text=_("Please describe any special accessibility requirements that you may have."),
+        help_text=_("Please describe any special accessibility requirements "
+        "that you may have. Edit using "
+        "<a href='http://warpedvisions.org/projects/"
+        "markdown-cheat-sheet/target='_blank'>Markdown</a>."),
         verbose_name=_("Accessibility requirements"))
+    accessibility_html = models.TextField(blank=True)
     travel_assistance = models.BooleanField(
         blank=True,
         default=False,
@@ -52,6 +84,12 @@ class Speaker(models.Model):
         help_text=_("Check this box if you require us to provide you with student-style "
                     "accommodation in order to present your proposed sessions."),
         verbose_name=_("Accommodation assistance required"),
+    )
+    agreement = models.BooleanField(
+        default=False,
+        help_text=_("I agree to the terms and confitions of attendance, and "
+                    "I have read, understood, and agree to act according to "
+                    "the standards set forth in our Code of Conduct ")
     )
 
     annotation = models.TextField(verbose_name=_("Annotation"))  # staff only
@@ -70,6 +108,8 @@ class Speaker(models.Model):
 
     def save(self, *args, **kwargs):
         self.biography_html = parse(self.biography)
+        self.experience_html = parse(self.experience)
+        self.accessibility_html = parse(self.accessibility)
         return super(Speaker, self).save(*args, **kwargs)
 
     def __str__(self):
