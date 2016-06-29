@@ -1,3 +1,5 @@
+import random
+
 from django.core.mail import send_mass_mail
 from django.db.models import Q
 from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
@@ -104,6 +106,30 @@ def review_section(request, section_slug, assigned=False, reviewed="all"):
 
 
 @login_required
+def review_random_proposal(request, section_slug):
+    # lca2017 #16 view for random proposal
+
+    if not request.user.has_perm("reviews.can_review_%s" % section_slug):
+        return access_not_permitted(request)
+
+    section = get_object_or_404(ProposalSection, section__slug=section_slug)
+    queryset = ProposalBase.objects.filter(kind__section=section.section)
+    # Remove ones already reviewed
+    queryset = queryset.exclude(reviews__user=request.user)
+    # Remove talks the reviewer can't vote on -- their own.
+    queryset = queryset.exclude(speaker__user=request.user)
+    queryset = queryset.exclude(additional_speakers__user=request.user)
+
+    if len(queryset) == 0:
+        return redirect("review_section", section_slug=section_slug, reviewed="all")
+
+    # Realistically, there shouldn't be all that many proposals to choose
+    # from, so this should be cheap.
+    chosen = random.choice(queryset.all())
+    return redirect("review_detail", pk=chosen.pk)
+
+
+@login_required
 def review_list(request, section_slug, user_pk):
 
     # if they're not a reviewer admin and they aren't the person whose
@@ -124,7 +150,7 @@ def review_list(request, section_slug, user_pk):
     ctx = {
         "proposals": proposals,
     }
-    return render(request, "symposion/reviews/review_list.html", ctx)
+    return (request, "symposion/reviews/review_list.html", ctx)
 
 
 @login_required

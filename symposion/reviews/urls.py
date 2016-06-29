@@ -9,6 +9,7 @@ from .views import (
     result_notification,
     result_notification_prepare,
     result_notification_send,
+    review_random_proposal,
     review_detail,
     review_delete,
     review_assignments,
@@ -19,6 +20,7 @@ urlpatterns = [
     url(r"^section/(?P<section_slug>[\w\-]+)/all/$", review_section, {"reviewed": "all"}, name="review_section"),
     url(r"^section/(?P<section_slug>[\w\-]+)/reviewed/$", review_section, {"reviewed": "reviewed"}, name="user_reviewed"),
     url(r"^section/(?P<section_slug>[\w\-]+)/not_reviewed/$", review_section, {"reviewed": "not_reviewed"}, name="user_not_reviewed"),
+    url(r"^section/(?P<section_slug>[\w\-]+)/random/$", review_random_proposal, name="user_random"),
     url(r"^section/(?P<section_slug>[\w\-]+)/assignments/$", review_section, {"assigned": True}, name="review_section_assignments"),
     url(r"^section/(?P<section_slug>[\w\-]+)/status/$", review_status, name="review_status"),
     url(r"^section/(?P<section_slug>[\w\-]+)/status/(?P<key>\w+)/$", review_status, name="review_status"),
@@ -28,6 +30,7 @@ urlpatterns = [
     url(r"^section/(?P<section_slug>[\w\-]+)/notification/(?P<status>\w+)/$", result_notification, name="result_notification"),
     url(r"^section/(?P<section_slug>[\w\-]+)/notification/(?P<status>\w+)/prepare/$", result_notification_prepare, name="result_notification_prepare"),
     url(r"^section/(?P<section_slug>[\w\-]+)/notification/(?P<status>\w+)/send/$", result_notification_send, name="result_notification_send"),
+
 
     url(r"^review/(?P<pk>\d+)/$", review_detail, name="review_detail"),
 
