@@ -94,7 +94,9 @@ def review_section(request, section_slug, assigned=False, reviewed="all"):
             speaker__user=request.user)
         reviewed = "user_not_reviewed"
 
-    proposals = proposals_generator(request, queryset)
+    # lca2017 #21 -- chairs want to be able to see their own proposals in the list
+    check_speaker = not request.user.has_perm("reviews.can_manage_%s" % section_slug)
+    proposals = proposals_generator(request, queryset, check_speaker=check_speaker)
 
     ctx = {
         "proposals": proposals,
