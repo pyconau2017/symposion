@@ -24,7 +24,8 @@ def send_email(to, kind, **kwargs):
     message_plaintext = strip_tags(message_html)
 
     from_email = settings.DEFAULT_FROM_EMAIL
+    bcc_email = settings.ENVELOPE_BCC_LIST
 
-    email = EmailMultiAlternatives(subject, message_plaintext, from_email, to)
+    email = EmailMultiAlternatives(subject, message_plaintext, from_email, to, bcc=bcc_email)
     email.attach_alternative(message_html, "text/html")
     email.send()
