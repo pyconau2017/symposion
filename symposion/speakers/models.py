@@ -23,7 +23,7 @@ class Speaker(models.Model):
     user = models.OneToOneField(User, null=True, related_name="speaker_profile", verbose_name=_("User"))
     name = models.CharField(verbose_name=_("Name"), max_length=100,
                             help_text=_("As you would like it to appear in the"
-                                        " conference program."))
+                                        " conference programme."))
     biography = models.TextField(blank=True, help_text=_("A little bit about you.  Edit using "
                                                          "<a href='http://warpedvisions.org/projects/"
                                                          "markdown-cheat-sheet/target='_blank'>"
