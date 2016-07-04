@@ -14,6 +14,7 @@ from .views import (
     review_delete,
     review_assignments,
     review_assignment_opt_out,
+    review_all_proposals_csv,
 )
 
 urlpatterns = [
@@ -36,5 +37,8 @@ urlpatterns = [
 
     url(r"^(?P<pk>\d+)/delete/$", review_delete, name="review_delete"),
     url(r"^assignments/$", review_assignments, name="review_assignments"),
-    url(r"^assignment/(?P<pk>\d+)/opt-out/$", review_assignment_opt_out, name="review_assignment_opt_out")
+    url(r"^assignment/(?P<pk>\d+)/opt-out/$", review_assignment_opt_out, name="review_assignment_opt_out"),
+
+    url(r"^csv$", review_all_proposals_csv, name="review_all_proposals_csv"),
+
 ]
