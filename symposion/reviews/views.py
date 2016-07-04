@@ -1,7 +1,10 @@
+import csv
 import random
+import StringIO
 
 from django.core.mail import send_mass_mail
 from django.db.models import Q
+from django.http import HttpResponse
 from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template import Context, Template
@@ -105,6 +108,40 @@ def review_section(request, section_slug, assigned=False, reviewed="all"):
     }
 
     return render(request, "symposion/reviews/review_list.html", ctx)
+
+
+@login_required
+def review_all_proposals_csv(request):
+    ''' Returns a CSV representation of all of the proposals this user has
+    permisison to review. '''
+
+    queryset = ProposalBase.objects.filter()
+
+    # The fields from each proposal object to report in the csv
+    fields = [
+        "id", "kind", "speaker_name", "title", "submitted", "cancelled", "status",
+        "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
+    ]
+
+    output = StringIO.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
+
+    # Fields are the heading
+    writer.writerow(fields)
+
+    for proposal in proposals_generator(request, queryset, check_speaker=False):
+
+        proposal.speaker_name = proposal.speaker.name
+        proposal.kind = proposal.kind.section.slug
+
+        if not request.user.has_perm("reviews.can_review_%s" % proposal.kind):
+            continue
+
+        csv_line = [getattr(proposal, field) for field in fields]
+
+        writer.writerow(csv_line)
+
+    return HttpResponse(output.getvalue(), "text/csv")
 
 
 @login_required
