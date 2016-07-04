@@ -119,7 +119,7 @@ def review_all_proposals_csv(request):
 
     # The fields from each proposal object to report in the csv
     fields = [
-        "id", "kind", "speaker_name", "title", "submitted", "cancelled", "status",
+        "id", "proposal_type", "speaker_name", "title", "submitted", "cancelled", "status",
         "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
     ]
 
@@ -132,9 +132,10 @@ def review_all_proposals_csv(request):
     for proposal in proposals_generator(request, queryset, check_speaker=False):
 
         proposal.speaker_name = proposal.speaker.name
-        proposal.kind = proposal.kind.section.slug
+        section_slug = proposal.kind.section.slug
+        proposal.proposal_type = section_slug
 
-        if not request.user.has_perm("reviews.can_review_%s" % proposal.kind):
+        if not request.user.has_perm("reviews.can_review_%s" % section_slug):
             continue
 
         csv_line = [getattr(proposal, field) for field in fields]
