@@ -140,6 +140,11 @@ def review_all_proposals_csv(request):
 
         csv_line = [getattr(proposal, field) for field in fields]
 
+        # Enusre that unicode items are handled properly.
+        for i, item in enumerate(csv_line):
+            if isinstance(item, unicode):
+                csv_line[i] = item.encode("utf8")
+
         writer.writerow(csv_line)
 
     return HttpResponse(output.getvalue(), "text/csv")
