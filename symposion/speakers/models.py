@@ -87,7 +87,7 @@ class Speaker(models.Model):
     )
     agreement = models.BooleanField(
         default=False,
-        help_text=_("I agree to the terms and confitions of attendance, and "
+        help_text=_("I agree to the terms and conditions of attendance, and "
                     "I have read, understood, and agree to act according to "
                     "the standards set forth in our Code of Conduct ")
     )
