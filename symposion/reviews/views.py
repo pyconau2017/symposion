@@ -119,7 +119,8 @@ def review_all_proposals_csv(request):
 
     # The fields from each proposal object to report in the csv
     fields = [
-        "id", "proposal_type", "speaker_name", "title", "submitted", "cancelled", "status",
+        "id", "proposal_type", "speaker_name","speaker_email", "title",
+        "submitted", "cancelled", "status",
         "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
     ]
 
