@@ -30,7 +30,7 @@ class Speaker(models.Model):
                     "programme.  Please write in the third person, eg 'Alice "
                     "is a Moblin hacker...', 150-200 words. Edit using "
                     "<a href='http://warpedvisions.org/projects/"
-                    "markdown-cheat-sheet/target='_blank'>"
+                    "markdown-cheat-sheet/' target='_blank'>"
                     "Markdown</a>."),
         verbose_name=_("Biography"),
     )
@@ -42,7 +42,7 @@ class Speaker(models.Model):
                     "seen by the organisers and reviewers; use it to convince "
                     "them why they should accept your proposal. Edit using "
                     "<a href='http://warpedvisions.org/projects/"
-                    "markdown-cheat-sheet/target='_blank'>"
+                    "markdown-cheat-sheet/' target='_blank'>"
                     "Markdown</a>."),
         verbose_name=_("Speaking experience"),
     )
@@ -68,7 +68,7 @@ class Speaker(models.Model):
         help_text=_("Please describe any special accessibility requirements "
         "that you may have. Edit using "
         "<a href='http://warpedvisions.org/projects/"
-        "markdown-cheat-sheet/target='_blank'>Markdown</a>."),
+        "markdown-cheat-sheet/' target='_blank'>Markdown</a>."),
         verbose_name=_("Accessibility requirements"))
     accessibility_html = models.TextField(blank=True)
     travel_assistance = models.BooleanField(
