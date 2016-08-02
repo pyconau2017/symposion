@@ -37,8 +37,8 @@ class Votes(object):
     ABSTAIN = "0"
     PLUS_TWO = "+2"
     PLUS_ONE = "+1"
-    MINUS_ONE = "−1"
-    MINUS_TWO = "−2"
+    MINUS_ONE = "-1"
+    MINUS_TWO = "-2"
 
     CHOICES = [
         (PLUS_TWO, _("+2 — Good proposal and I will argue for it to be accepted.")),
