@@ -90,7 +90,8 @@ class ProposalBase(models.Model):
         _("Abstract"),
         help_text=_("This will appear in the conference programme. Up to about "
                     "500 words. Edit using <a "
-                    "href='http://daringfireball.net/projects/markdown/basics' " "target='_blank'>Markdown</a>.")
+                    "href='http://warpedvisions.org/projects/"
+                    "markdown-cheat-sheet/' target='_blank'>Markdown</a>.")
     )
     abstract_html = models.TextField(blank=True)
 
@@ -98,8 +99,9 @@ class ProposalBase(models.Model):
         _("Private Abstract"),
         help_text=_("This will only be shown to organisers and reviewers. You "
                     "should provide any details about your proposal that you "
-                    "don't want to be public here. Edit using <a " "href='http://daringfireball.net/projects/markdown/basics' "
-                    "target='_blank'>Markdown</a>.")
+                    "don't want to be public here. Edit using <a "
+                    "href='http://warpedvisions.org/projects/"
+                    "markdown-cheat-sheet/' target='_blank'>Markdown</a>.")
     )
     private_abstract_html = models.TextField(blank=True)
 
@@ -112,8 +114,8 @@ class ProposalBase(models.Model):
                     "static IP address, A/V equipment or will be demonstrating "
                     "security-related techniques on the conference network. "
                     "Edit using <a "
-                    "href='http://daringfireball.net/projects/markdown/basics' "
-                    "target='_blank'>Markdown</a>.")
+                    "href='http://warpedvisions.org/projects/"
+                    "markdown-cheat-sheet/' target='_blank'>Markdown</a>.")
     )
     technical_requirements_html = models.TextField(blank=True)
 
