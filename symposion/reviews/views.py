@@ -68,6 +68,38 @@ def proposals_generator(request, queryset, user_pk=None, check_speaker=True):
         yield obj
 
 
+VOTE_THRESHOLD = settings.SYMPOSION_VOTE_THRESHOLD
+
+POSITIVE = "positive"
+NEGATIVE = "negative"
+INDIFFERENT = "indifferent"
+CONTROVERSIAL = "controversial"
+TOO_FEW = "too_few"
+
+REVIEW_STATUS_FILTERS = {
+    # proposals with at least VOTE_THRESHOLD reviews and at least one +2 and no -2s, sorted by
+    # the 'score'
+    POSITIVE: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_two__gt=0,
+                                result__minus_two=0).order_by("-result__score"),
+    # proposals with at least VOTE_THRESHOLD reviews and at least one -2 and no +2s, reverse
+    # sorted by the 'score'
+    NEGATIVE: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two__gt=0,
+                                result__plus_two=0).order_by("result__score"),
+    # proposals with at least VOTE_THRESHOLD reviews and neither a +2 or a -2, sorted by total
+    # votes (lowest first)
+    INDIFFERENT: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two=0,
+                                   result__plus_two=0).order_by("result__vote_count"),
+    # proposals with at least VOTE_THRESHOLD reviews and both a +2 and -2, sorted by total
+    # votes (highest first)
+    CONTROVERSIAL: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD,
+                                     result__plus_two__gt=0, result__minus_two__gt=0)
+         .order_by("-result__vote_count"),
+    # proposals with fewer than VOTE_THRESHOLD reviews
+    TOO_FEW: lambda qs: qs.filter(result__vote_count__lt=VOTE_THRESHOLD)
+        .order_by("result__vote_count"),
+}
+
+
 # Returns a list of all proposals, proposals reviewed by the user, or the proposals the user has
 # yet to review depending on the link user clicks in dashboard
 @login_required
@@ -168,6 +200,15 @@ def review_random_proposal(request, section_slug):
 
     if len(queryset) == 0:
         return redirect("review_section", section_slug=section_slug, reviewed="all")
+
+    # Direct reviewers to underreviewed proposals
+    too_few_set = REVIEW_STATUS_FILTERS[TOO_FEW](queryset)
+    indifferent_set = REVIEW_STATUS_FILTERS[INDIFFERENT](queryset)
+
+    if len(too_few_set) > 0:
+        queryset = too_few_set
+    elif len(indifferent_set) > 0:
+        queryset = indifferent_set
 
     # Realistically, there shouldn't be all that many proposals to choose
     # from, so this should be cheap.
@@ -381,8 +422,6 @@ def review_status(request, section_slug=None, key=None):
     if not request.user.has_perm("reviews.can_review_%s" % section_slug):
         return access_not_permitted(request)
 
-    VOTE_THRESHOLD = settings.SYMPOSION_VOTE_THRESHOLD
-
     ctx = {
         "section_slug": section_slug,
         "vote_threshold": VOTE_THRESHOLD,
@@ -392,28 +431,7 @@ def review_status(request, section_slug=None, key=None):
     if section_slug:
         queryset = queryset.filter(kind__section__slug=section_slug)
 
-    proposals = {
-        # proposals with at least VOTE_THRESHOLD reviews and at least one +2 and no -2s, sorted by
-        # the 'score'
-        "positive": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_two__gt=0,
-                                    result__minus_two=0).order_by("-result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and at least one -2 and no +2s, reverse
-        # sorted by the 'score'
-        "negative": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two__gt=0,
-                                    result__plus_two=0).order_by("result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and neither a +2 or a -2, sorted by total
-        # votes (lowest first)
-        "indifferent": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two=0,
-                                       result__plus_two=0).order_by("result__vote_count"),
-        # proposals with at least VOTE_THRESHOLD reviews and both a +2 and -2, sorted by total
-        # votes (highest first)
-        "controversial": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD,
-                                         result__plus_two__gt=0, result__minus_two__gt=0)
-        .order_by("-result__vote_count"),
-        # proposals with fewer than VOTE_THRESHOLD reviews
-        "too_few": queryset.filter(result__vote_count__lt=VOTE_THRESHOLD)
-        .order_by("result__vote_count"),
-    }
+    proposals = dict((key, filt(queryset)) for key, filt in REVIEW_STATUS_FILTERS.items())
 
     admin = request.user.has_perm("reviews.can_manage_%s" % section_slug)
 
