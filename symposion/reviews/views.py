@@ -238,7 +238,7 @@ def review_list(request, section_slug, user_pk):
     ctx = {
         "proposals": proposals,
     }
-    return (request, "symposion/reviews/review_list.html", ctx)
+    return render(request, "symposion/reviews/review_list.html", ctx)
 
 
 @login_required
