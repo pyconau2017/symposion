@@ -257,7 +257,11 @@ def review_admin(request, section_slug):
                     continue
                 already_seen.add(user.pk)
 
-                user.comment_count = Review.objects.filter(user=user).count()
+                user.comment_count = Review.objects.filter(
+                    user=user,
+                    proposal__kind__section__slug=section_slug,
+                ).count()
+                
                 user_votes = LatestVote.objects.filter(
                     user=user,
                     proposal__kind__section__slug=section_slug,
