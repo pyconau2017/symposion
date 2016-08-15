@@ -147,6 +147,10 @@ def review_all_proposals_csv(request):
     ''' Returns a CSV representation of all of the proposals this user has
     permisison to review. '''
 
+    response = HttpResponse("text/csv")
+    response['Content-Disposition'] = 'attachment; filename="proposals.csv"'
+    writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+
     queryset = ProposalBase.objects.filter()
 
     # The fields from each proposal object to report in the csv
@@ -155,9 +159,6 @@ def review_all_proposals_csv(request):
         "submitted", "cancelled", "status",
         "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
     ]
-
-    output = StringIO.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
 
     # Fields are the heading
     writer.writerow(fields)
@@ -180,7 +181,7 @@ def review_all_proposals_csv(request):
 
         writer.writerow(csv_line)
 
-    return HttpResponse(output.getvalue(), "text/csv")
+    return response
 
 
 @login_required
@@ -237,7 +238,7 @@ def review_list(request, section_slug, user_pk):
     ctx = {
         "proposals": proposals,
     }
-    return (request, "symposion/reviews/review_list.html", ctx)
+    return render(request, "symposion/reviews/review_list.html", ctx)
 
 
 @login_required
@@ -257,23 +258,37 @@ def review_admin(request, section_slug):
                 already_seen.add(user.pk)
 
                 user.comment_count = Review.objects.filter(user=user).count()
-                user.total_votes = LatestVote.objects.filter(user=user).count()
-                user.plus_two = LatestVote.objects.filter(
+                user_votes = LatestVote.objects.filter(
                     user=user,
-                    vote=LatestVote.VOTES.PLUS_TWO
+                    proposal__kind__section__slug=section_slug,
+                )
+                print section_slug
+                print [vote.proposal.kind.section.slug for vote in user_votes]
+                user.total_votes = user_votes.exclude(
+                    vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
-                user.plus_one = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.PLUS_ONE
+                user.plus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_TWO,
                 ).count()
-                user.minus_one = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_ONE
+                user.plus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_ONE,
                 ).count()
-                user.minus_two = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_TWO
+                user.minus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_ONE,
                 ).count()
+                user.minus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_TWO,
+                ).count()
+                user.abstain = user_votes.filter(
+                    vote=LatestVote.VOTES.ABSTAIN,
+                ).count()
+                if user.total_votes == 0:
+                    user.average = "-"
+                else:
+                    user.average = (
+                        user.plus_two + user.plus_one +
+                        user.minus_one + user.minus_two
+                    ) / (user.total_votes * 1.0)
 
                 yield user
 
@@ -310,7 +325,7 @@ def review_detail(request, pk):
         if request.user in speakers:
             return access_not_permitted(request)
 
-        if "vote_submit" in request.POST:
+        if "vote_submit" in request.POST or "vote_submit_and_random" in request.POST:
             review_form = ReviewForm(request.POST)
             if review_form.is_valid():
 
@@ -319,7 +334,13 @@ def review_detail(request, pk):
                 review.proposal = proposal
                 review.save()
 
-                return redirect(request.path)
+                if "vote_submit_and_random" in request.POST:
+                    next_page = redirect("user_random", proposal.kind.section.slug)
+                    next_page["Location"] += "#invalid_fragment"  # Hack.
+                else:
+                    next_page = redirect(request.path)
+
+                return next_page
             else:
                 message_form = SpeakerCommentForm()
         elif "message_submit" in request.POST and admin:
