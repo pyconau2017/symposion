@@ -297,7 +297,7 @@ def review_admin(request, section_slug):
                 yield user
 
     reviewers_sorted = list(reviewers())
-    sort(reviewers_sorted: key= lambda reviewer: 0 - reviewer.total_votes)
+    reviewers_sorted.sort(key= lambda reviewer: 0 - reviewer.total_votes)
 
     ctx = {
         "section_slug": section_slug,
