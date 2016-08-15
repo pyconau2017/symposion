@@ -147,6 +147,10 @@ def review_all_proposals_csv(request):
     ''' Returns a CSV representation of all of the proposals this user has
     permisison to review. '''
 
+    response = HttpResponse("text/csv")
+    response['Content-Disposition'] = 'attachment; filename="proposals.csv"'
+    writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+
     queryset = ProposalBase.objects.filter()
 
     # The fields from each proposal object to report in the csv
@@ -155,9 +159,6 @@ def review_all_proposals_csv(request):
         "submitted", "cancelled", "status",
         "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
     ]
-
-    output = StringIO.StringIO()
-    writer = csv.writer(output, quoting=csv.QUOTE_NONNUMERIC)
 
     # Fields are the heading
     writer.writerow(fields)
@@ -180,7 +181,7 @@ def review_all_proposals_csv(request):
 
         writer.writerow(csv_line)
 
-    return HttpResponse(output.getvalue(), "text/csv")
+    return response
 
 
 @login_required
