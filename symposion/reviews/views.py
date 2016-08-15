@@ -325,7 +325,7 @@ def review_detail(request, pk):
         if request.user in speakers:
             return access_not_permitted(request)
 
-        if "vote_submit" in request.POST:
+        if "vote_submit" in request.POST or "vote_submit_and_random" in request.POST:
             review_form = ReviewForm(request.POST)
             if review_form.is_valid():
 
@@ -334,7 +334,13 @@ def review_detail(request, pk):
                 review.proposal = proposal
                 review.save()
 
-                return redirect(request.path)
+                if "vote_submit_and_random" in request.POST:
+                    next_page = redirect("user_random", proposal.kind.section.slug)
+                    next_page["Location"] += "#invalid_fragment"  # Hack.
+                else:
+                    next_page = redirect(request.path)
+
+                return next_page
             else:
                 message_form = SpeakerCommentForm()
         elif "message_submit" in request.POST and admin:
