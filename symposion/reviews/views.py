@@ -259,8 +259,11 @@ def review_admin(request, section_slug):
 
                 user.comment_count = Review.objects.filter(user=user).count()
                 user_votes = LatestVote.objects.filter(
-                    user=user
+                    user=user,
+                    proposal__kind__section__slug=section_slug,
                 )
+                print section_slug
+                print [vote.proposal.kind.section.slug for vote in user_votes]
                 user.total_votes = user_votes.exclude(
                     vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
@@ -279,9 +282,13 @@ def review_admin(request, section_slug):
                 user.abstain = user_votes.filter(
                     vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
-                user.average = (
-                    user.plus_two + user.plus_one + user.minus_one + user.minus_two
-                ) / (user.total_votes * 1.0)
+                if user.total_votes == 0:
+                    user.average = "-"
+                else:
+                    user.average = (
+                        user.plus_two + user.plus_one +
+                        user.minus_one + user.minus_two
+                    ) / (user.total_votes * 1.0)
 
                 yield user
 
