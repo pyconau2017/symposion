@@ -286,8 +286,8 @@ def review_admin(request, section_slug):
                     user.average = "-"
                 else:
                     user.average = (
-                        user.plus_two + user.plus_one +
-                        user.minus_one + user.minus_two
+                        ((user.plus_two * 2) + user.plus_one) -
+                        ((user.minus_two * 2) + user.minus_one)
                     ) / (user.total_votes * 1.0)
 
                 yield user
