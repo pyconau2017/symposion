@@ -258,23 +258,30 @@ def review_admin(request, section_slug):
                 already_seen.add(user.pk)
 
                 user.comment_count = Review.objects.filter(user=user).count()
-                user.total_votes = LatestVote.objects.filter(user=user).count()
-                user.plus_two = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.PLUS_TWO
+                user_votes = LatestVote.objects.filter(
+                    user=user
+                )
+                user.total_votes = user_votes.exclude(
+                    vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
-                user.plus_one = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.PLUS_ONE
+                user.plus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_TWO,
                 ).count()
-                user.minus_one = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_ONE
+                user.plus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_ONE,
                 ).count()
-                user.minus_two = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_TWO
+                user.minus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_ONE,
                 ).count()
+                user.minus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_TWO,
+                ).count()
+                user.abstain = user_votes.filter(
+                    vote=LatestVote.VOTES.ABSTAIN,
+                ).count()
+                user.average = (
+                    user.plus_two + user.plus_one + user.minus_one + user.minus_two
+                ) / (user.total_votes * 1.0)
 
                 yield user
 
