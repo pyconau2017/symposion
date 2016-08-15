@@ -297,7 +297,7 @@ def review_admin(request, section_slug):
 
     ctx = {
         "section_slug": section_slug,
-        "reviewers": reviewers(),
+        "reviewers": reviewers_sorted,
     }
     return render(request, "symposion/reviews/review_admin.html", ctx)
 
