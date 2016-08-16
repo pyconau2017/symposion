@@ -208,13 +208,21 @@ def review_random_proposal(request, section_slug):
     controversial_set = REVIEW_STATUS_FILTERS[CONTROVERSIAL](queryset)
 
     if len(too_few_set) > 0:
-        queryset = too_few_set
+        proposals = too_few_set.all()
     elif len(controversial_set) > 0:
-        queryset = controversial_set
+        proposals = controversial_set.all()
+    else:
+        # Select a proposal with less than the median number of total votes
+        proposals = proposals_generator(request, queryset, check_speaker=False)
+        proposals = list(proposals)
+        proposals.sort(key = lambda proposal: proposal.total_votes)
+        # The first half is the median or less.
+        # The +1 means we round _up_.
+        proposals = proposals[:(len(proposals) + 1) / 2]
 
     # Realistically, there shouldn't be all that many proposals to choose
     # from, so this should be cheap.
-    chosen = random.choice(queryset.all())
+    chosen = random.choice(proposals)
     return redirect("review_detail", pk=chosen.pk)
 
 
@@ -262,7 +270,7 @@ def review_admin(request, section_slug):
                     user=user,
                     proposal__kind__section__slug=section_slug,
                 ).count()
-                
+
                 user_votes = LatestVote.objects.filter(
                     user=user,
                     proposal__kind__section__slug=section_slug,
