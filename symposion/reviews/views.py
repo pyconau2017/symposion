@@ -205,12 +205,12 @@ def review_random_proposal(request, section_slug):
 
     # Direct reviewers to underreviewed proposals
     too_few_set = REVIEW_STATUS_FILTERS[TOO_FEW](queryset)
-    indifferent_set = REVIEW_STATUS_FILTERS[INDIFFERENT](queryset)
+    controversial_set = REVIEW_STATUS_FILTERS[CONTROVERSIAL](queryset)
 
     if len(too_few_set) > 0:
         queryset = too_few_set
-    elif len(indifferent_set) > 0:
-        queryset = indifferent_set
+    elif len(controversial_set) > 0:
+        queryset = controversial_set
 
     # Realistically, there shouldn't be all that many proposals to choose
     # from, so this should be cheap.
