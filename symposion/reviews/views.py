@@ -237,6 +237,7 @@ def review_list(request, section_slug, user_pk):
 
     queryset = ProposalBase.objects.select_related("speaker__user", "result")
     reviewed = LatestVote.objects.filter(user__pk=user_pk).values_list("proposal", flat=True)
+    queryset = queryset.filter(kind__section__slug=section_slug)
     queryset = queryset.filter(pk__in=reviewed)
     proposals = queryset.order_by("submitted")
 
