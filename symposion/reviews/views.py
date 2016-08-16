@@ -167,7 +167,8 @@ def review_all_proposals_csv(request):
 
         proposal.speaker_name = proposal.speaker.name
         section_slug = proposal.kind.section.slug
-        proposal.proposal_type = section_slug
+        kind_slug = proposal.kind.slug
+        proposal.proposal_type = kind_slug
 
         if not request.user.has_perm("reviews.can_review_%s" % section_slug):
             continue
