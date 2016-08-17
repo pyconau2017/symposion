@@ -167,7 +167,8 @@ def review_all_proposals_csv(request):
 
         proposal.speaker_name = proposal.speaker.name
         section_slug = proposal.kind.section.slug
-        proposal.proposal_type = section_slug
+        kind_slug = proposal.kind.slug
+        proposal.proposal_type = kind_slug
 
         if not request.user.has_perm("reviews.can_review_%s" % section_slug):
             continue
@@ -204,16 +205,24 @@ def review_random_proposal(request, section_slug):
 
     # Direct reviewers to underreviewed proposals
     too_few_set = REVIEW_STATUS_FILTERS[TOO_FEW](queryset)
-    indifferent_set = REVIEW_STATUS_FILTERS[INDIFFERENT](queryset)
+    controversial_set = REVIEW_STATUS_FILTERS[CONTROVERSIAL](queryset)
 
     if len(too_few_set) > 0:
-        queryset = too_few_set
-    elif len(indifferent_set) > 0:
-        queryset = indifferent_set
+        proposals = too_few_set.all()
+    elif len(controversial_set) > 0:
+        proposals = controversial_set.all()
+    else:
+        # Select a proposal with less than the median number of total votes
+        proposals = proposals_generator(request, queryset, check_speaker=False)
+        proposals = list(proposals)
+        proposals.sort(key = lambda proposal: proposal.total_votes)
+        # The first half is the median or less.
+        # The +1 means we round _up_.
+        proposals = proposals[:(len(proposals) + 1) / 2]
 
     # Realistically, there shouldn't be all that many proposals to choose
     # from, so this should be cheap.
-    chosen = random.choice(queryset.all())
+    chosen = random.choice(proposals)
     return redirect("review_detail", pk=chosen.pk)
 
 
@@ -228,6 +237,7 @@ def review_list(request, section_slug, user_pk):
 
     queryset = ProposalBase.objects.select_related("speaker__user", "result")
     reviewed = LatestVote.objects.filter(user__pk=user_pk).values_list("proposal", flat=True)
+    queryset = queryset.filter(kind__section__slug=section_slug)
     queryset = queryset.filter(pk__in=reviewed)
     proposals = queryset.order_by("submitted")
 
@@ -261,7 +271,7 @@ def review_admin(request, section_slug):
                     user=user,
                     proposal__kind__section__slug=section_slug,
                 ).count()
-                
+
                 user_votes = LatestVote.objects.filter(
                     user=user,
                     proposal__kind__section__slug=section_slug,
