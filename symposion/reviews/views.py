@@ -209,7 +209,7 @@ def review_random_proposal(request, section_slug):
 
     if len(too_few_set) > 0:
         proposals = too_few_set.all()
-    elif len(controversial_set) > 0:
+    elif len(controversial_set) > 0 and random.random() < 0.2:
         proposals = controversial_set.all()
     else:
         # Select a proposal with less than the median number of total votes
