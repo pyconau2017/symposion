@@ -8,27 +8,28 @@ from django.utils.html import strip_tags
 from django.contrib.sites.models import Site
 
 
-def sender(template_prefix):
-    ''' Creates a function called `send_email` '''
+class Sender(object):
+    ''' Class for sending e-mails under a templete prefix. '''
 
-    def send_email(to, kind, **kwargs):
+    def __init__(self, template_prefix):
+        self.template_prefix = template_prefix
+
+    def send_email(self, to, kind, **kwargs):
         ''' Sends an e-mail to the given address.
 
         to: The address
         kind: the ID for an e-mail kind; it should point to a subdirectory of
-            %(template_prefix)s containing subject.txt and message.html, which
+            self.template_prefix containing subject.txt and message.html, which
             are django templates for the subject and HTML message respectively.
 
         context: a context for rendering the e-mail.
 
-        ''' % {"template_prefix": template_prefix}
+        '''
 
-        return __send_email__(template_prefix, to, kind, **kwargs)
-
-    return send_email
+        return __send_email__(self.template_prefix, to, kind, **kwargs)
 
 
-send_email = sender("symposion/emails")
+send_email = Sender("symposion/emails").send_email
 
 
 def __send_email__(template_prefix, to, kind, **kwargs):
