@@ -156,8 +156,9 @@ def review_all_proposals_csv(request):
     # The fields from each proposal object to report in the csv
     fields = [
         "id", "proposal_type", "speaker_name","speaker_email", "title",
-        "submitted", "cancelled", "status",
-        "score", "total_votes", "minus_two", "minus_one", "plus_one", "plus_two",
+        "submitted", "other_speakers", "speaker_travel",
+        "speaker_accommodation", "cancelled", "status", "score", "total_votes",
+        "minus_two", "minus_one", "plus_one", "plus_two",
     ]
 
     # Fields are the heading
@@ -169,6 +170,21 @@ def review_all_proposals_csv(request):
         section_slug = proposal.kind.section.slug
         kind_slug = proposal.kind.slug
         proposal.proposal_type = kind_slug
+
+        proposal.other_speakers = ", ".join(
+            speaker.name
+            for speaker in proposal.additional_speakers.all()
+        )
+
+        proposal.speaker_travel = ", ".join(
+            str(bool(speaker.travel_assistance))
+            for speaker in proposal.speakers()
+        )
+
+        proposal.speaker_accommodation = ", ".join(
+            str(bool(speaker.accommodation_assistance))
+            for speaker in proposal.speakers()
+        )
 
         if not request.user.has_perm("reviews.can_review_%s" % section_slug):
             continue
