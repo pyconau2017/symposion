@@ -196,7 +196,7 @@ class ProposalBase(models.Model):
     def notification_email_context(self):
         return {
             "title": self.title,
-            "speaker": self.speaker,
+            "main_speaker": self.speaker,
             "speakers": ', '.join([x.name for x in self.speakers()]),
             "additional_speakers": self.additional_speakers,
             "kind": self.kind.name,
