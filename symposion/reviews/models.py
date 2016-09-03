@@ -349,6 +349,9 @@ class ResultNotification(models.Model):
         for speaker in self.proposal.speakers():
             yield speaker.email
 
+    def __unicode__(self):
+        return self.proposal.title + ' ' + self.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+
     @property
     def email_args(self):
         return (self.subject, self.body, self.from_address, self.recipients())
@@ -361,7 +364,6 @@ def promote_proposal(proposal):
     else:
         presentation = Presentation(
             title=proposal.title,
-            description=proposal.description,
             abstract=proposal.abstract,
             speaker=proposal.speaker,
             section=proposal.section,
