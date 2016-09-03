@@ -225,7 +225,6 @@ def schedule_json(request):
                     s.email for s in slot.content.speakers()
                 ] if request.user.is_staff else ["redacted"],
                 "abstract": slot.content.abstract.raw,
-                "description": slot.content.description.raw,
                 "conf_url": "%s://%s%s" % (
                     protocol,
                     Site.objects.get_current().domain,

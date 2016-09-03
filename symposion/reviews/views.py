@@ -645,7 +645,11 @@ def result_notification_send(request, section_slug, status):
         rn.template = notification_template
         rn.to_address = proposal.speaker_email
         rn.from_address = request.POST["from_address"]
-        rn.subject = request.POST["subject"]
+        rn.subject = Template(request.POST["subject"]).render(
+            Context({
+                "proposal": proposal.notification_email_context()
+            })
+        )
         rn.body = Template(request.POST["body"]).render(
             Context({
                 "proposal": proposal.notification_email_context()

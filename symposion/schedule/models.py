@@ -185,8 +185,6 @@ class Presentation(models.Model):
 
     slot = models.OneToOneField(Slot, null=True, blank=True, related_name="content_ptr", verbose_name=_("Slot"))
     title = models.CharField(max_length=100, verbose_name=_("Title"))
-    description = models.TextField(verbose_name=_("Description"))
-    description_html = models.TextField(blank=True)
     abstract = models.TextField(verbose_name=_("Abstract"))
     abstract_html = models.TextField(blank=True)
     speaker = models.ForeignKey(Speaker, related_name="presentations", verbose_name=_("Speaker"))
@@ -197,7 +195,6 @@ class Presentation(models.Model):
     section = models.ForeignKey(Section, related_name="presentations", verbose_name=_("Section"))
 
     def save(self, *args, **kwargs):
-        self.description_html = parse(self.description)
         self.abstract_html = parse(self.abstract)
         return super(Presentation, self).save(*args, **kwargs)
 

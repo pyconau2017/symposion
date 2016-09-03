@@ -361,7 +361,6 @@ def promote_proposal(proposal):
     else:
         presentation = Presentation(
             title=proposal.title,
-            description=proposal.description,
             abstract=proposal.abstract,
             speaker=proposal.speaker,
             section=proposal.section,
