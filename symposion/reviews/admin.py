@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from symposion.reviews.models import NotificationTemplate, ProposalResult
+from symposion.reviews.models import NotificationTemplate, ProposalResult, ResultNotification
 
 
 admin.site.register(
@@ -16,3 +16,5 @@ admin.site.register(
     ProposalResult,
     list_display=['proposal', 'status', 'score', 'vote_count', 'accepted']
 )
+
+admin.site.register(ResultNotification)
