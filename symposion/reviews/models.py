@@ -342,7 +342,7 @@ class ResultNotification(models.Model):
     timestamp = models.DateTimeField(default=datetime.now, verbose_name=_("Timestamp"))
     to_address = models.EmailField(verbose_name=_("To address"))
     from_address = models.EmailField(verbose_name=_("From address"))
-    subject = models.CharField(max_length=100, verbose_name=_("Subject"))
+    subject = models.CharField(max_length=255, verbose_name=_("Subject"))
     body = models.TextField(verbose_name=_("Body"))
 
     def recipients(self):
