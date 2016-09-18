@@ -78,6 +78,9 @@ def schedule_list(request, slug=None):
     presentations = Presentation.objects.filter(section=schedule.section)
     presentations = presentations.exclude(cancelled=True)
 
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+
     ctx = {
         "schedule": schedule,
         "presentations": presentations,
@@ -91,7 +94,10 @@ def schedule_list_csv(request, slug=None):
         raise Http404()
 
     presentations = Presentation.objects.filter(section=schedule.section)
-    presentations = presentations.exclude(cancelled=True).order_by("id")
+    presentations = presentations.exclude(cancelled=True)
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+    presentations = presentations.order_by("id")
     response = HttpResponse(content_type="text/csv")
 
     if slug:
@@ -222,6 +228,9 @@ def schedule_json(request):
             "contact": [],
         }
         if hasattr(slot.content, "proposal"):
+            if slot.content.proposal.unpublish and not request.user.is_staff:
+                continue
+
             slot_data.update({
                 "name": slot.content.title,
                 "authors": [s.name for s in slot.content.speakers()],
