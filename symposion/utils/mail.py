@@ -58,6 +58,11 @@ def __send_email__(template_prefix, to, kind, **kwargs):
     except AttributeError:
         bcc_email = None
 
+    try:
+        bcc_email = settings.ENVELOPE_BCC_LIST
+    except AttributeError:
+        bcc_email = None
+
     email = EmailMultiAlternatives(subject, message_plaintext, from_email, to)
     email.attach_alternative(message_html, "text/html")
     email.send()
