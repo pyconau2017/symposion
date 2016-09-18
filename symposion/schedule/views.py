@@ -78,6 +78,9 @@ def schedule_list(request, slug=None):
     presentations = Presentation.objects.filter(section=schedule.section)
     presentations = presentations.exclude(cancelled=True)
 
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+
     ctx = {
         "schedule": schedule,
         "presentations": presentations,
@@ -91,7 +94,10 @@ def schedule_list_csv(request, slug=None):
         raise Http404()
 
     presentations = Presentation.objects.filter(section=schedule.section)
-    presentations = presentations.exclude(cancelled=True).order_by("id")
+    presentations = presentations.exclude(cancelled=True)
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+    presentations = presentations.order_by("id")
     response = HttpResponse(content_type="text/csv")
 
     if slug:
@@ -174,12 +180,18 @@ def schedule_slot_edit(request, slug, slot_pk):
 def schedule_presentation_detail(request, pk):
 
     presentation = get_object_or_404(Presentation, pk=pk)
+
     if presentation.slot:
+        # 1) Schedule from presentation's slot
         schedule = presentation.slot.day.schedule
-        if not schedule.published and not request.user.is_staff:
-            raise Http404()
     else:
-        schedule = None
+        # 2) Fall back to the schedule for this proposal
+        schedule = presentation.proposal.kind.section.schedule
+
+    if not request.user.is_staff:
+        # 3) Is proposal unpublished?
+        if presentation.unpublish or not (schedule and schedule.published):
+            raise Http404()
 
     ctx = {
         "presentation": presentation,
@@ -214,10 +226,11 @@ def schedule_json(request):
             "tags": "",
             "released": True,
             "contact": [],
-
-
         }
         if hasattr(slot.content, "proposal"):
+            if slot.content.proposal.unpublish and not request.user.is_staff:
+                continue
+
             slot_data.update({
                 "name": slot.content.title,
                 "authors": [s.name for s in slot.content.speakers()],

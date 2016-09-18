@@ -361,6 +361,12 @@ def promote_proposal(proposal):
     if hasattr(proposal, "presentation") and proposal.presentation:
         # already promoted
         presentation = proposal.presentation
+        presentation.title = proposal.title
+        presentation.abstract = proposal.abstract
+        presentation.speaker = proposal.speaker
+        presentation.proposal_base = proposal
+        presentation.save()
+        presentation.additional_speakers.clear()
     else:
         presentation = Presentation(
             title=proposal.title,
@@ -370,9 +376,9 @@ def promote_proposal(proposal):
             proposal_base=proposal,
         )
         presentation.save()
-        for speaker in proposal.additional_speakers.all():
-            presentation.additional_speakers.add(speaker)
-            presentation.save()
+    for speaker in proposal.additional_speakers.all():
+        presentation.additional_speakers.add(speaker)
+        presentation.save()
 
     return presentation
 

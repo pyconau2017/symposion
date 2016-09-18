@@ -23,7 +23,7 @@ from symposion.reviews.forms import ReviewForm, SpeakerCommentForm
 from symposion.reviews.forms import BulkPresentationForm
 from symposion.reviews.models import (
     ReviewAssignment, Review, LatestVote, ProposalResult, NotificationTemplate,
-    ResultNotification
+    ResultNotification, promote_proposal
 )
 
 
@@ -422,8 +422,11 @@ def review_detail(request, pk):
                 elif result == "standby":
                     proposal.result.status = "standby"
                     proposal.result.save()
-
-            return redirect(request.path)
+                return redirect(request.path)
+        elif "publish_changes" in request.POST:
+            if admin and proposal.result.status == "accepted":
+                promote_proposal(proposal)
+                return redirect(request.path)
     else:
         initial = {}
         if latest_vote:
