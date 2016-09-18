@@ -174,12 +174,18 @@ def schedule_slot_edit(request, slug, slot_pk):
 def schedule_presentation_detail(request, pk):
 
     presentation = get_object_or_404(Presentation, pk=pk)
+
     if presentation.slot:
+        # 1) Schedule from presentation's slot
         schedule = presentation.slot.day.schedule
-        if not schedule.published and not request.user.is_staff:
-            raise Http404()
     else:
-        schedule = None
+        # 2) Fall back to the schedule for this proposal
+        schedule = presentation.proposal.kind.section.schedule
+
+    if not request.user.is_staff:
+        # 3) Is proposal unpublished?
+        if presentation.unpublish or not (schedule and schedule.published):
+            raise Http404()
 
     ctx = {
         "presentation": presentation,
@@ -214,8 +220,6 @@ def schedule_json(request):
             "tags": "",
             "released": True,
             "contact": [],
-
-
         }
         if hasattr(slot.content, "proposal"):
             slot_data.update({
