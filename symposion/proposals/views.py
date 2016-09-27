@@ -205,10 +205,14 @@ def proposal_edit(request, pk):
         if form.is_valid():
             form.save()
             if hasattr(proposal, "reviews"):
-                users = User.objects.filter(
-                    Q(review__proposal=proposal) |
-                    Q(proposalmessage__proposal=proposal)
-                )
+                # Miniconf updates should only email the admins
+                if proposal.kind.slug == 'miniconf':
+                    users = User.objects.filter(username__in=settings.ADMIN_USERNAMES)
+                else:
+                    users = User.objects.filter(
+                        Q(review__proposal=proposal) |
+                        Q(proposalmessage__proposal=proposal)
+                    )
                 users = users.exclude(id=request.user.id).distinct()
                 for user in users:
                     ctx = {
