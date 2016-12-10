@@ -303,8 +303,8 @@ def session_detail(request, session_id):
                 runner_denied = True
 
     if request.method == "POST" and request.user.is_authenticated():
-        if not hasattr(request.user, "profile") or not request.user.profile.is_complete:
-            response = redirect("profile_edit")
+        if not hasattr(request.user, "attendee") or not request.user.attendee.completed_registration:
+            response = redirect("guided_registration")
             response["Location"] += "?next=%s" % request.path
             return response
 
