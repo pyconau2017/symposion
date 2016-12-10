@@ -87,6 +87,11 @@ class Slot(models.Model):
     kind = models.ForeignKey(SlotKind, verbose_name=_("Kind"))
     start = models.TimeField(verbose_name=_("Start"))
     end = models.TimeField(verbose_name=_("End"))
+    exclusive = models.BooleanField(
+        default=False,
+        help_text=_("Set to true if this is the only event during this "
+                    "timeslot"),
+    )
     content_override = models.TextField(blank=True, verbose_name=_("Content override"))
     content_override_html = models.TextField(blank=True)
 

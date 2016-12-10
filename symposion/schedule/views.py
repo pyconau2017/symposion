@@ -228,7 +228,7 @@ def schedule_json(request):
             "contact": [],
         }
         if hasattr(slot.content, "proposal"):
-            if slot.content.proposal.unpublish and not request.user.is_staff:
+            if slot.content.unpublish and not request.user.is_staff:
                 continue
 
             slot_data.update({
@@ -237,7 +237,7 @@ def schedule_json(request):
                 "contact": [
                     s.email for s in slot.content.speakers()
                 ] if request.user.is_staff else ["redacted"],
-                "abstract": slot.content.abstract.raw,
+                "abstract": slot.content.abstract,
                 "conf_url": "%s://%s%s" % (
                     protocol,
                     Site.objects.get_current().domain,
@@ -247,7 +247,7 @@ def schedule_json(request):
             })
         else:
             slot_data.update({
-                "name": slot.content_override.raw if slot.content_override else "Slot",
+                "name": slot.content_override if slot.content_override else "Slot",
             })
         data.append(slot_data)
 

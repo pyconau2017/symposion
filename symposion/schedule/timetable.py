@@ -30,12 +30,13 @@ class TimeTable(object):
         slots = slots.annotate(room_count=Count("slotroom"), order=Min("slotroom__room__order"))
         slots = slots.order_by("start", "order")
         row = []
+        total_room_count = self.rooms().count()
         for time, next_time in pairwise(times):
             row = {"time": time, "slots": []}
             for slot in slots:
                 if slot.start == time:
                     slot.rowspan = TimeTable.rowspan(times, slot.start, slot.end)
-                    slot.colspan = slot.room_count
+                    slot.colspan = slot.room_count if not slot.exclusive else total_room_count
                     row["slots"].append(slot)
             if row["slots"] or next_time is None:
                 yield row
