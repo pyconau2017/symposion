@@ -10,6 +10,8 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.sites.models import Site
 
+from django_ical.views import ICalFeed
+
 from account.decorators import login_required
 
 from symposion.schedule.forms import SlotEditForm, ScheduleSectionForm
@@ -256,6 +258,47 @@ def schedule_json(request):
         content_type="application/json"
     )
 
+class EventFeed(ICalFeed):
+
+    product_id = '-//linux.conf.au/schedule//EN'
+    timezone = 'Australia/Tasmania'
+    filename = 'conference.ics'
+    
+    def items(self):
+        return Slot.objects.filter(
+            day__schedule__published=True,
+            day__schedule__hidden=False
+        ).order_by("start")    
+    
+    def item_title(self, item):
+        if hasattr(item.content, 'proposal'):
+            return item.content.title
+        else:
+            item.content_override if item.content_override else "Slot"
+    
+    def item_description(self, item):
+        if hasattr(item.content, 'proposal'):
+            return item.content.abstract
+        else:
+            return None
+    
+    def item_start_datetime(self, item):
+        return item.start_datetime
+    
+    def item_end_datetime(self, item):
+        return item.end_datetime
+    
+    def item_location(self, item):
+        return ", ".join(room["name"] for room in item.rooms.values())
+    
+    def item_link(self, item):
+        if hasattr(item.content, 'proposal'):
+            return 'http://%s%s' % (
+                                    Site.objects.get_current().domain,
+                                    reverse('schedule_presentation_detail', args=[item.content.pk])
+                                    )
+        else:
+            return 'http://%s' % Site.objects.get_current().domain
 
 def session_list(request):
     sessions = Session.objects.all().order_by('pk')
