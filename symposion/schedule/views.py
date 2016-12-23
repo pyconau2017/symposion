@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 import json
+import pytz
 
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template import loader, Context
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -261,7 +263,7 @@ def schedule_json(request):
 class EventFeed(ICalFeed):
 
     product_id = '-//linux.conf.au/schedule//EN'
-    timezone = 'Australia/Tasmania'
+    timezone = settings.TIME_ZONE
     filename = 'conference.ics'
     
     def items(self):
@@ -283,10 +285,10 @@ class EventFeed(ICalFeed):
             return None
     
     def item_start_datetime(self, item):
-        return item.start_datetime
+        return pytz.timezone(settings.TIME_ZONE).localize(item.start_datetime)
     
     def item_end_datetime(self, item):
-        return item.end_datetime
+        return pytz.timezone(settings.TIME_ZONE).localize(item.end_datetime)
     
     def item_location(self, item):
         return ", ".join(room["name"] for room in item.rooms.values())
