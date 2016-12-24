@@ -51,10 +51,11 @@ class Room(models.Model):
 
     schedule = models.ForeignKey(Schedule, verbose_name=_("Schedule"))
     name = models.CharField(max_length=65, verbose_name=_("Name"))
+    track = models.CharField(max_length=80, verbose_name=_("Track"), default=None, blank=True, null=True)
     order = models.PositiveIntegerField(verbose_name=_("Order"))
 
     def __str__(self):
-        return self.name
+        return '%s (%s)' % (self.name, self.track)
 
     class Meta:
         verbose_name = _("Room")

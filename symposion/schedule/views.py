@@ -52,8 +52,10 @@ def schedule_conference(request):
             "days": days,
         })
 
+    day_switch = request.GET.get('day', None)
     ctx = {
         "sections": sections,
+        "day_switch": day_switch
     }
     return render(request, "symposion/schedule/schedule_conference.html", ctx)
 
