@@ -51,15 +51,29 @@ class Room(models.Model):
 
     schedule = models.ForeignKey(Schedule, verbose_name=_("Schedule"))
     name = models.CharField(max_length=65, verbose_name=_("Name"))
-    track = models.CharField(max_length=80, verbose_name=_("Track"), default=None, blank=True, null=True)
     order = models.PositiveIntegerField(verbose_name=_("Order"))
 
     def __str__(self):
-        return '%s (%s)' % (self.name, self.track)
+        return self.name
 
     class Meta:
         verbose_name = _("Room")
         verbose_name_plural = _("Rooms")
+
+
+@python_2_unicode_compatible
+class Track(models.Model):
+    name = models.CharField(max_length=80, verbose_name=_("Track"))
+    room = models.ForeignKey(Room)
+    day = models.ForeignKey(Day)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = [('room', 'day')]
+        verbose_name = _("Track")
+        verbose_name_plural = _("Tracks")
 
 
 @python_2_unicode_compatible
