@@ -62,6 +62,21 @@ class Room(models.Model):
 
 
 @python_2_unicode_compatible
+class Track(models.Model):
+    name = models.CharField(max_length=80, verbose_name=_("Track"))
+    room = models.ForeignKey(Room)
+    day = models.ForeignKey(Day)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = [('room', 'day')]
+        verbose_name = _("Track")
+        verbose_name_plural = _("Tracks")
+
+
+@python_2_unicode_compatible
 class SlotKind(models.Model):
     """
     A slot kind represents what kind a slot is. For example, a slot can be a

@@ -13,6 +13,7 @@ from .views import (
     session_staff_email,
     session_list,
     session_detail,
+    EventFeed
 )
 
 urlpatterns = [
@@ -27,6 +28,7 @@ urlpatterns = [
     url(r"^([\w\-]+)/presentations.csv$", schedule_list_csv, name="schedule_list_csv"),
     url(r"^([\w\-]+)/edit/slot/(\d+)/", schedule_slot_edit, name="schedule_slot_edit"),
     url(r"^conference.json", schedule_json, name="schedule_json"),
+    url(r"^conference.ics", EventFeed(), name="ical_feed"),
     url(r"^sessions/staff.txt$", session_staff_email, name="schedule_session_staff_email"),
     url(r"^sessions/$", session_list, name="schedule_session_list"),
     url(r"^session/(\d+)/$", session_detail, name="schedule_session_detail"),
