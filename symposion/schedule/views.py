@@ -242,7 +242,7 @@ def schedule_json(request):
                 "authors": [s.name for s in slot.content.speakers()],
                 "contact": [
                     s.email for s in slot.content.speakers()
-                ] if request.user.is_staff else ["redacted"],
+                ] if request.user.has_perm('symposion_speakers.can_view_contact_details') or request.user.is_staff else ["redacted"],
                 "abstract": slot.content.abstract,
                 "conf_url": "%s://%s%s" % (
                     protocol,
@@ -258,7 +258,7 @@ def schedule_json(request):
         data.append(slot_data)
 
     return HttpResponse(
-        json.dumps({"schedule": data}),
+        json.dumps({"schedule": data}, indent=2),
         content_type="application/json"
     )
 
