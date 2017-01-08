@@ -105,6 +105,7 @@ class Speaker(models.Model):
         ordering = ['name']
         verbose_name = _("Speaker")
         verbose_name_plural = _("Speakers")
+        permissions = (('can_view_contact_details', 'Can View Contact Details'),)
 
     def save(self, *args, **kwargs):
         self.biography_html = parse(self.biography)
