@@ -270,6 +270,12 @@ class Session(models.Model):
         else:
             return None
 
+    def chair(self):
+        for role in self.sessionrole_set.all():
+            if role.role == SessionRole.SESSION_ROLE_CHAIR:
+                return role
+        return None
+
     def __str__(self):
         start = self.start()
         end = self.end()
