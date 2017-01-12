@@ -272,6 +272,8 @@ class EventFeed(ICalFeed):
         return Slot.objects.filter(
             day__schedule__published=True,
             day__schedule__hidden=False
+        ).exclude(
+            kind__label='shortbreak'
         ).order_by("start")
 
     def item_title(self, item):
@@ -306,6 +308,9 @@ class EventFeed(ICalFeed):
                                     )
         else:
             return 'http://%s' % Site.objects.get_current().domain
+    
+    def item_guid(self, item):
+        return '%d@%s' % (item.pk, Site.objects.get_current().domain)
 
 def session_list(request):
     sessions = Session.objects.all().order_by('pk')
