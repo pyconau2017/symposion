@@ -267,34 +267,36 @@ class EventFeed(ICalFeed):
     product_id = '-//linux.conf.au/schedule//EN'
     timezone = settings.TIME_ZONE
     filename = 'conference.ics'
-    
+
     def items(self):
         return Slot.objects.filter(
             day__schedule__published=True,
             day__schedule__hidden=False
-        ).order_by("start")    
-    
+        ).order_by("start")
+
     def item_title(self, item):
         if hasattr(item.content, 'proposal'):
             return item.content.title
         else:
             item.content_override if item.content_override else "Slot"
-    
+
     def item_description(self, item):
         if hasattr(item.content, 'proposal'):
-            return item.content.abstract
+            description = "Speaker: %s\n%s" % (
+                item.content.speaker, item.content.abstract)
+            return description
         else:
             return None
-    
+
     def item_start_datetime(self, item):
         return pytz.timezone(settings.TIME_ZONE).localize(item.start_datetime)
-    
+
     def item_end_datetime(self, item):
         return pytz.timezone(settings.TIME_ZONE).localize(item.end_datetime)
-    
+
     def item_location(self, item):
         return ", ".join(room["name"] for room in item.rooms.values())
-    
+
     def item_link(self, item):
         if hasattr(item.content, 'proposal'):
             return 'http://%s%s' % (
