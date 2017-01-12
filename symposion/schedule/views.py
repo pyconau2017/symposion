@@ -276,17 +276,18 @@ class EventFeed(ICalFeed):
 
     def item_title(self, item):
         if hasattr(item.content, 'proposal'):
-            return item.content.title
+            title =  item.content.title
         else:
-            item.content_override if item.content_override else "Slot"
+            title = item.kind if item.kind else "Slot"
+        return title
 
     def item_description(self, item):
         if hasattr(item.content, 'proposal'):
             description = "Speaker: %s\n%s" % (
                 item.content.speaker, item.content.abstract)
-            return description
         else:
-            return None
+            description = item.content_override if item.content_override else "No description"
+        return description
 
     def item_start_datetime(self, item):
         return pytz.timezone(settings.TIME_ZONE).localize(item.start_datetime)
