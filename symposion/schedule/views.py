@@ -19,7 +19,7 @@ from account.decorators import login_required
 from symposion.schedule.forms import SlotEditForm, ScheduleSectionForm
 from symposion.schedule.models import Schedule, Day, Slot, Presentation, Session, SessionRole
 from symposion.schedule.timetable import TimeTable
-
+from symposion.conference.models import Conference
 
 def fetch_schedule(slug):
     qs = Schedule.objects.all()
@@ -267,6 +267,7 @@ class EventFeed(ICalFeed):
     product_id = '-//linux.conf.au/schedule//EN'
     timezone = settings.TIME_ZONE
     filename = 'conference.ics'
+    description = Conference.objects.all().first().title
 
     def items(self):
         return Slot.objects.filter(
