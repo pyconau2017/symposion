@@ -251,6 +251,8 @@ def schedule_json(request):
                 ),
                 "cancelled": slot.content.cancelled,
             })
+            if not slot.content.speaker.twitter_username == '':
+                slot_data["twitter_id"] = slot.content.speaker.twitter_username
         else:
             slot_data.update({
                 "name": slot.content_override if slot.content_override else "Slot",
