@@ -230,7 +230,7 @@ def schedule_json(request):
             # base proposals
             "license": "CC BY",
             "tags": "",
-            "released": True,
+            "released": False,
             "contact": [],
         }
         if hasattr(slot.content, "proposal"):
@@ -250,6 +250,7 @@ def schedule_json(request):
                     reverse("schedule_presentation_detail", args=[slot.content.pk])
                 ),
                 "cancelled": slot.content.cancelled,
+                "released": slot.content.proposal.recording_release
             })
             if not slot.content.speaker.twitter_username == '':
                 slot_data["twitter_id"] = slot.content.speaker.twitter_username
