@@ -270,7 +270,8 @@ class EventFeed(ICalFeed):
     product_id = '-//linux.conf.au/schedule//EN'
     timezone = settings.TIME_ZONE
     filename = 'conference.ics'
-    description = Conference.objects.all().first().title
+    def description(self):
+        return Conference.objects.all().first().title
 
     def items(self):
         return Slot.objects.filter(
