@@ -61,7 +61,7 @@ class Speaker(models.Model):
     twitter_username = models.CharField(
         max_length=15,
         blank=True,
-        help_text=_(u"Your Twitter account")
+        help_text=_(u"Your Twitter account, if you have one and wish to share it.")
     )
     accessibility = models.TextField(
         blank=True,
