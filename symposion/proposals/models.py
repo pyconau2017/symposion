@@ -85,7 +85,7 @@ class ProposalBase(models.Model):
 
     kind = models.ForeignKey(ProposalKind, verbose_name=_("Kind"))
 
-    title = models.CharField(max_length=100, verbose_name=_("Title"))
+    title = models.CharField(max_length=100, verbose_name=_("Proposal Title"))
     abstract = models.TextField(
         _("Abstract"),
         help_text=_("This will appear in the conference programme. Up to about "
