@@ -74,7 +74,7 @@ class Speaker(models.Model):
     travel_assistance = models.BooleanField(
         blank=True,
         default=False,
-        help_text=_("Check this box if you require assistance to travel to Hobart to "
+        help_text=_("Check this box if you require assistance to travel to to the conference to "
                     "present your proposed sessions."),
         verbose_name=_("Travel assistance required"),
     )
