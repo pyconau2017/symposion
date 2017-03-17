@@ -96,7 +96,7 @@ class ProposalBase(models.Model):
     abstract_html = models.TextField(blank=True)
 
     private_abstract = models.TextField(
-        _("Private Abstract"),
+        verbose_name=_("Private Abstract and Timing Overview"),
         help_text=_("This will only be shown to organisers and reviewers. You "
                     "should provide any details about your proposal that you "
                     "don't want to be public here. Edit using <a "
@@ -122,7 +122,7 @@ class ProposalBase(models.Model):
     project = models.CharField(
         max_length=100,
         blank=True,
-        help_text=_("The name of the project you will be talking about."),
+        help_text=_("The name of the project you will be talking about. If given, it will be published next to your abstract."),
     )
     project_url = models.URLField(
         _("Project URL"),
