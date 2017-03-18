@@ -37,10 +37,13 @@ class Speaker(models.Model):
     biography_html = models.TextField(blank=True)
     experience = models.TextField(
         blank=True,
-        help_text=_("Have you had any experience presenting elsewhere? If so, "
-                    "we'd like to know. Anything you put here will only be "
-                    "seen by the organisers and reviewers; use it to convince "
-                    "them why they should accept your proposal. Edit using "
+        help_text=_("Please briefly describe your speaking experience. "
+                    "The program committee will use this information to "
+                    "provide a balanced probram while also encouraging new "
+                    "speakers. Where a topic is very technical or of "
+                    "significant community interest, we will check that the "
+                    "speaker has the right experience. "
+                    "Edit using "
                     "<a href='http://warpedvisions.org/projects/"
                     "markdown-cheat-sheet/' target='_blank'>"
                     "Markdown</a>."),
@@ -50,7 +53,8 @@ class Speaker(models.Model):
     photo = models.ImageField(upload_to="speaker_photos", blank=True, verbose_name=_("Photo"))
     telephone = models.CharField(
         max_length=15,
-        help_text=_(u"The conference team will need this to contact you "
+        help_text=_(u"This is visible only to the conference team, who may need this to "
+                    "contact you "
                     "during the conference week. If you don't have one, or do "
                     "not wish to provide it, then enter NONE in this field.")
     )
