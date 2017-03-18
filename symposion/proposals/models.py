@@ -97,11 +97,22 @@ class ProposalBase(models.Model):
 
     private_abstract = models.TextField(
         verbose_name=_("Private Abstract and Timing Overview"),
-        help_text=_("This will only be shown to organisers and reviewers. You "
-                    "should provide any details about your proposal that you "
-                    "don't want to be public here. Edit using <a "
-                    "href='http://warpedvisions.org/projects/"
-                    "markdown-cheat-sheet/' target='_blank'>Markdown</a>.")
+        help_text="Sample 30 Minute Proposal Timeline:<br>"
+                  "<p>0 - 5 minutes: Introduction of speaker and explanation of problem<br>"
+                  "5 - 10 minutes: Describe the requirements and objectives<br>"
+                  "10 - 15 minutes: Explanation and overview of what was done<br>"
+                  "15 - 20 minutes: Review of important details and salient points<br>"
+                  "20 - 25 minutes: Conclusion and wrap-up<br>"
+                  "25 - 30 minutes: Questions<br></p>"
+                  "<p>Please provide a 5-minute breakdown of your talk. "
+                  "Please feel free to use the time and structure the talk however you wish. "
+                  "The template above is simply provided for reference. "
+                  "If you are proposing a longer-form talk (70 minutes) please extend the timing breakdown to the full duration of that talk.</p>"
+                  "<p>This will only be shown to organisers and reviewers. You "
+                  "should provide any details about your proposal that you "
+                  "don't want to be public here. Edit using <a "
+                  "href='http://warpedvisions.org/projects/"
+                  "markdown-cheat-sheet/' target='_blank'>Markdown</a>.",
     )
     private_abstract_html = models.TextField(blank=True)
 
