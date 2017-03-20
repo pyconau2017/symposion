@@ -82,6 +82,12 @@ class Speaker(models.Model):
                     "present your proposed sessions."),
         verbose_name=_("Travel assistance required"),
     )
+    home_city = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text=_("Please list your home city and country you'll be travelling from. If you requested "
+                    "travel assistance this will help us determine costs."),
+        verbose_name="Home City")
     accommodation_assistance = models.BooleanField(
         blank=True,
         default=False,

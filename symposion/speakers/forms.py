@@ -18,6 +18,7 @@ class SpeakerForm(forms.ModelForm):
             "twitter_username",
             "accessibility",
             "travel_assistance",
+            "home_city",
             "accommodation_assistance",
             "agreement",
         ]
