@@ -1,21 +1,25 @@
 from __future__ import unicode_literals
 import json
+import pytz
 
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template import loader, Context
+from django.conf import settings
 
 from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.sites.models import Site
+
+from django_ical.views import ICalFeed
 
 from account.decorators import login_required
 
 from symposion.schedule.forms import SlotEditForm, ScheduleSectionForm
 from symposion.schedule.models import Schedule, Day, Slot, Presentation, Session, SessionRole
 from symposion.schedule.timetable import TimeTable
-
+from symposion.conference.models import Conference
 
 def fetch_schedule(slug):
     qs = Schedule.objects.all()
@@ -48,8 +52,10 @@ def schedule_conference(request):
             "days": days,
         })
 
+    day_switch = request.GET.get('day', None)
     ctx = {
         "sections": sections,
+        "day_switch": day_switch
     }
     return render(request, "symposion/schedule/schedule_conference.html", ctx)
 
@@ -78,6 +84,9 @@ def schedule_list(request, slug=None):
     presentations = Presentation.objects.filter(section=schedule.section)
     presentations = presentations.exclude(cancelled=True)
 
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+
     ctx = {
         "schedule": schedule,
         "presentations": presentations,
@@ -91,7 +100,10 @@ def schedule_list_csv(request, slug=None):
         raise Http404()
 
     presentations = Presentation.objects.filter(section=schedule.section)
-    presentations = presentations.exclude(cancelled=True).order_by("id")
+    presentations = presentations.exclude(cancelled=True)
+    if not request.user.is_staff:
+        presentations = presentations.exclude(unpublish=True)
+    presentations = presentations.order_by("id")
     response = HttpResponse(content_type="text/csv")
 
     if slug:
@@ -174,12 +186,18 @@ def schedule_slot_edit(request, slug, slot_pk):
 def schedule_presentation_detail(request, pk):
 
     presentation = get_object_or_404(Presentation, pk=pk)
+
     if presentation.slot:
+        # 1) Schedule from presentation's slot
         schedule = presentation.slot.day.schedule
-        if not schedule.published and not request.user.is_staff:
-            raise Http404()
     else:
-        schedule = None
+        # 2) Fall back to the schedule for this proposal
+        schedule = presentation.proposal.kind.section.schedule
+
+    if not request.user.is_staff:
+        # 3) Is proposal unpublished?
+        if presentation.unpublish or not (schedule and schedule.published):
+            raise Http404()
 
     ctx = {
         "presentation": presentation,
@@ -212,38 +230,92 @@ def schedule_json(request):
             # base proposals
             "license": "CC BY",
             "tags": "",
-            "released": True,
+            "released": False,
             "contact": [],
-
-
         }
         if hasattr(slot.content, "proposal"):
+            if slot.content.unpublish and not request.user.is_staff:
+                continue
+
             slot_data.update({
                 "name": slot.content.title,
                 "authors": [s.name for s in slot.content.speakers()],
                 "contact": [
                     s.email for s in slot.content.speakers()
-                ] if request.user.is_staff else ["redacted"],
-                "abstract": slot.content.abstract.raw,
-                "description": slot.content.description.raw,
+                ] if request.user.has_perm('symposion_speakers.can_view_contact_details') or request.user.is_staff else ["redacted"],
+                "abstract": slot.content.abstract,
                 "conf_url": "%s://%s%s" % (
                     protocol,
                     Site.objects.get_current().domain,
                     reverse("schedule_presentation_detail", args=[slot.content.pk])
                 ),
                 "cancelled": slot.content.cancelled,
+                "released": slot.content.proposal.recording_release
             })
+            if not slot.content.speaker.twitter_username == '':
+                slot_data["twitter_id"] = slot.content.speaker.twitter_username
         else:
             slot_data.update({
-                "name": slot.content_override.raw if slot.content_override else "Slot",
+                "name": slot.content_override if slot.content_override else "Slot",
             })
         data.append(slot_data)
 
     return HttpResponse(
-        json.dumps({"schedule": data}),
+        json.dumps({"schedule": data}, indent=2),
         content_type="application/json"
     )
 
+class EventFeed(ICalFeed):
+
+    product_id = '-//linux.conf.au/schedule//EN'
+    timezone = settings.TIME_ZONE
+    filename = 'conference.ics'
+    def description(self):
+        return Conference.objects.all().first().title
+
+    def items(self):
+        return Slot.objects.filter(
+            day__schedule__published=True,
+            day__schedule__hidden=False
+        ).exclude(
+            kind__label='shortbreak'
+        ).order_by("start")
+
+    def item_title(self, item):
+        if hasattr(item.content, 'proposal'):
+            title =  item.content.title
+        else:
+            title = item.kind if item.kind else "Slot"
+        return title
+
+    def item_description(self, item):
+        if hasattr(item.content, 'proposal'):
+            description = "Speaker: %s\n%s" % (
+                item.content.speaker, item.content.abstract)
+        else:
+            description = item.content_override if item.content_override else "No description"
+        return description
+
+    def item_start_datetime(self, item):
+        return pytz.timezone(settings.TIME_ZONE).localize(item.start_datetime)
+
+    def item_end_datetime(self, item):
+        return pytz.timezone(settings.TIME_ZONE).localize(item.end_datetime)
+
+    def item_location(self, item):
+        return ", ".join(room["name"] for room in item.rooms.values())
+
+    def item_link(self, item):
+        if hasattr(item.content, 'proposal'):
+            return 'http://%s%s' % (
+                                    Site.objects.get_current().domain,
+                                    reverse('schedule_presentation_detail', args=[item.content.pk])
+                                    )
+        else:
+            return 'http://%s' % Site.objects.get_current().domain
+    
+    def item_guid(self, item):
+        return '%d@%s' % (item.pk, Site.objects.get_current().domain)
 
 def session_list(request):
     sessions = Session.objects.all().order_by('pk')
@@ -291,8 +363,8 @@ def session_detail(request, session_id):
                 runner_denied = True
 
     if request.method == "POST" and request.user.is_authenticated():
-        if not hasattr(request.user, "profile") or not request.user.profile.is_complete:
-            response = redirect("profile_edit")
+        if not hasattr(request.user, "attendee") or not request.user.attendee.completed_registration:
+            response = redirect("guided_registration")
             response["Location"] += "?next=%s" % request.path
             return response
 

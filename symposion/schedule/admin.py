@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 from django.contrib import admin
 
-from symposion.schedule.models import Schedule, Day, Room, SlotKind, Slot, SlotRoom, Presentation, Session, SessionRole
+from symposion.schedule.models import Schedule, Day, Room, SlotKind, Slot, SlotRoom, Presentation, Session, SessionRole, Track
 
 
 class DayInline(admin.StackedInline):
@@ -55,3 +55,4 @@ admin.site.register(Slot, SlotAdmin)
 admin.site.register(Session)
 admin.site.register(SessionRole)
 admin.site.register(Presentation, PresentationAdmin)
+admin.site.register(Track)

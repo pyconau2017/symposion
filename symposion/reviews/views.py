@@ -1,5 +1,10 @@
+import csv
+import random
+import StringIO
+
 from django.core.mail import send_mass_mail
 from django.db.models import Q
+from django.http import HttpResponse
 from django.http import HttpResponseBadRequest, HttpResponseNotAllowed
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template import Context, Template
@@ -18,7 +23,7 @@ from symposion.reviews.forms import ReviewForm, SpeakerCommentForm
 from symposion.reviews.forms import BulkPresentationForm
 from symposion.reviews.models import (
     ReviewAssignment, Review, LatestVote, ProposalResult, NotificationTemplate,
-    ResultNotification
+    ResultNotification, promote_proposal
 )
 
 
@@ -40,11 +45,12 @@ def proposals_generator(request, queryset, user_pk=None, check_speaker=True):
             ProposalResult.objects.get_or_create(proposal=obj)
 
         obj.comment_count = obj.result.comment_count
+        obj.score = obj.result.score
         obj.total_votes = obj.result.vote_count
+        obj.plus_two = obj.result.plus_two
         obj.plus_one = obj.result.plus_one
-        obj.plus_zero = obj.result.plus_zero
-        obj.minus_zero = obj.result.minus_zero
         obj.minus_one = obj.result.minus_one
+        obj.minus_two = obj.result.minus_two
         lookup_params = dict(proposal=obj)
 
         if user_pk:
@@ -60,6 +66,38 @@ def proposals_generator(request, queryset, user_pk=None, check_speaker=True):
             obj.user_vote_css = "no-vote"
 
         yield obj
+
+
+VOTE_THRESHOLD = settings.SYMPOSION_VOTE_THRESHOLD
+
+POSITIVE = "positive"
+NEGATIVE = "negative"
+INDIFFERENT = "indifferent"
+CONTROVERSIAL = "controversial"
+TOO_FEW = "too_few"
+
+REVIEW_STATUS_FILTERS = {
+    # proposals with at least VOTE_THRESHOLD reviews and at least one +2 and no -2s, sorted by
+    # the 'score'
+    POSITIVE: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_two__gt=0,
+                                result__minus_two=0).order_by("-result__score"),
+    # proposals with at least VOTE_THRESHOLD reviews and at least one -2 and no +2s, reverse
+    # sorted by the 'score'
+    NEGATIVE: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two__gt=0,
+                                result__plus_two=0).order_by("result__score"),
+    # proposals with at least VOTE_THRESHOLD reviews and neither a +2 or a -2, sorted by total
+    # votes (lowest first)
+    INDIFFERENT: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_two=0,
+                                   result__plus_two=0).order_by("result__vote_count"),
+    # proposals with at least VOTE_THRESHOLD reviews and both a +2 and -2, sorted by total
+    # votes (highest first)
+    CONTROVERSIAL: lambda qs: qs.filter(result__vote_count__gte=VOTE_THRESHOLD,
+                                     result__plus_two__gt=0, result__minus_two__gt=0)
+         .order_by("-result__vote_count"),
+    # proposals with fewer than VOTE_THRESHOLD reviews
+    TOO_FEW: lambda qs: qs.filter(result__vote_count__lt=VOTE_THRESHOLD)
+        .order_by("result__vote_count"),
+}
 
 
 # Returns a list of all proposals, proposals reviewed by the user, or the proposals the user has
@@ -91,7 +129,9 @@ def review_section(request, section_slug, assigned=False, reviewed="all"):
             speaker__user=request.user)
         reviewed = "user_not_reviewed"
 
-    proposals = proposals_generator(request, queryset)
+    # lca2017 #21 -- chairs want to be able to see their own proposals in the list
+    check_speaker = not request.user.has_perm("reviews.can_manage_%s" % section_slug)
+    proposals = proposals_generator(request, queryset, check_speaker=check_speaker)
 
     ctx = {
         "proposals": proposals,
@@ -100,6 +140,106 @@ def review_section(request, section_slug, assigned=False, reviewed="all"):
     }
 
     return render(request, "symposion/reviews/review_list.html", ctx)
+
+
+@login_required
+def review_all_proposals_csv(request):
+    ''' Returns a CSV representation of all of the proposals this user has
+    permisison to review. '''
+
+    response = HttpResponse("text/csv")
+    response['Content-Disposition'] = 'attachment; filename="proposals.csv"'
+    writer = csv.writer(response, quoting=csv.QUOTE_NONNUMERIC)
+
+    queryset = ProposalBase.objects.filter()
+
+    # The fields from each proposal object to report in the csv
+    fields = [
+        "id", "proposal_type", "speaker_name","speaker_email", "title",
+        "submitted", "other_speakers", "speaker_travel",
+        "speaker_accommodation", "cancelled", "status", "score", "total_votes",
+        "minus_two", "minus_one", "plus_one", "plus_two",
+    ]
+
+    # Fields are the heading
+    writer.writerow(fields)
+
+    for proposal in proposals_generator(request, queryset, check_speaker=False):
+
+        proposal.speaker_name = proposal.speaker.name
+        section_slug = proposal.kind.section.slug
+        kind_slug = proposal.kind.slug
+        proposal.proposal_type = kind_slug
+
+        proposal.other_speakers = ", ".join(
+            speaker.name
+            for speaker in proposal.additional_speakers.all()
+        )
+
+        proposal.speaker_travel = ", ".join(
+            str(bool(speaker.travel_assistance))
+            for speaker in proposal.speakers()
+        )
+
+        proposal.speaker_accommodation = ", ".join(
+            str(bool(speaker.accommodation_assistance))
+            for speaker in proposal.speakers()
+        )
+
+        if not request.user.has_perm("reviews.can_review_%s" % section_slug):
+            continue
+
+        csv_line = [getattr(proposal, field) for field in fields]
+
+        # Enusre that unicode items are handled properly.
+        for i, item in enumerate(csv_line):
+            if isinstance(item, unicode):
+                csv_line[i] = item.encode("utf8")
+
+        writer.writerow(csv_line)
+
+    return response
+
+
+@login_required
+def review_random_proposal(request, section_slug):
+    # lca2017 #16 view for random proposal
+
+    if not request.user.has_perm("reviews.can_review_%s" % section_slug):
+        return access_not_permitted(request)
+
+    section = get_object_or_404(ProposalSection, section__slug=section_slug)
+    queryset = ProposalBase.objects.filter(kind__section=section.section)
+    # Remove ones already reviewed
+    queryset = queryset.exclude(reviews__user=request.user)
+    # Remove talks the reviewer can't vote on -- their own.
+    queryset = queryset.exclude(speaker__user=request.user)
+    queryset = queryset.exclude(additional_speakers__user=request.user)
+
+    if len(queryset) == 0:
+        return redirect("review_section", section_slug=section_slug, reviewed="all")
+
+    # Direct reviewers to underreviewed proposals
+    too_few_set = REVIEW_STATUS_FILTERS[TOO_FEW](queryset)
+    controversial_set = REVIEW_STATUS_FILTERS[CONTROVERSIAL](queryset)
+
+    if len(too_few_set) > 0:
+        proposals = too_few_set.all()
+    elif len(controversial_set) > 0 and random.random() < 0.2:
+        proposals = controversial_set.all()
+    else:
+        # Select a proposal with less than the median number of total votes
+        proposals = proposals_generator(request, queryset, check_speaker=False)
+        proposals = list(proposals)
+        proposals.sort(key = lambda proposal: proposal.total_votes)
+        # The first half is the median or less.
+        # The +1 means we round _up_.
+        proposals = proposals[:(len(proposals) + 1) / 2]
+
+    # Realistically, there shouldn't be all that many proposals to choose
+    # from, so this should be cheap.
+    chosen = random.choice(proposals)
+    return redirect("review_detail", pk=chosen.pk)
 
 
 @login_required
@@ -113,6 +253,7 @@ def review_list(request, section_slug, user_pk):
 
     queryset = ProposalBase.objects.select_related("speaker__user", "result")
     reviewed = LatestVote.objects.filter(user__pk=user_pk).values_list("proposal", flat=True)
+    queryset = queryset.filter(kind__section__slug=section_slug)
     queryset = queryset.filter(pk__in=reviewed)
     proposals = queryset.order_by("submitted")
 
@@ -142,30 +283,51 @@ def review_admin(request, section_slug):
                     continue
                 already_seen.add(user.pk)
 
-                user.comment_count = Review.objects.filter(user=user).count()
-                user.total_votes = LatestVote.objects.filter(user=user).count()
-                user.plus_one = LatestVote.objects.filter(
+                user.comment_count = Review.objects.filter(
                     user=user,
-                    vote=LatestVote.VOTES.PLUS_ONE
+                    proposal__kind__section__slug=section_slug,
                 ).count()
-                user.plus_zero = LatestVote.objects.filter(
+
+                user_votes = LatestVote.objects.filter(
                     user=user,
-                    vote=LatestVote.VOTES.PLUS_ZERO
+                    proposal__kind__section__slug=section_slug,
+                )
+                print section_slug
+                print [vote.proposal.kind.section.slug for vote in user_votes]
+                user.total_votes = user_votes.exclude(
+                    vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
-                user.minus_zero = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_ZERO
+                user.plus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_TWO,
                 ).count()
-                user.minus_one = LatestVote.objects.filter(
-                    user=user,
-                    vote=LatestVote.VOTES.MINUS_ONE
+                user.plus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.PLUS_ONE,
                 ).count()
+                user.minus_one = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_ONE,
+                ).count()
+                user.minus_two = user_votes.filter(
+                    vote=LatestVote.VOTES.MINUS_TWO,
+                ).count()
+                user.abstain = user_votes.filter(
+                    vote=LatestVote.VOTES.ABSTAIN,
+                ).count()
+                if user.total_votes == 0:
+                    user.average = "-"
+                else:
+                    user.average = (
+                        ((user.plus_two * 2) + user.plus_one) -
+                        ((user.minus_two * 2) + user.minus_one)
+                    ) / (user.total_votes * 1.0)
 
                 yield user
 
+    reviewers_sorted = list(reviewers())
+    reviewers_sorted.sort(key= lambda reviewer: 0 - reviewer.total_votes)
+
     ctx = {
         "section_slug": section_slug,
-        "reviewers": reviewers(),
+        "reviewers": reviewers_sorted,
     }
     return render(request, "symposion/reviews/review_admin.html", ctx)
 
@@ -185,7 +347,7 @@ def review_detail(request, pk):
     if not request.user.is_superuser and request.user in speakers:
         return access_not_permitted(request)
 
-    admin = request.user.is_staff
+    admin = request.user.has_perm("reviews.can_manage_%s" % proposal.kind.section.slug)
 
     try:
         latest_vote = LatestVote.objects.get(proposal=proposal, user=request.user)
@@ -196,7 +358,7 @@ def review_detail(request, pk):
         if request.user in speakers:
             return access_not_permitted(request)
 
-        if "vote_submit" in request.POST:
+        if "vote_submit" in request.POST or "vote_submit_and_random" in request.POST:
             review_form = ReviewForm(request.POST)
             if review_form.is_valid():
 
@@ -205,10 +367,16 @@ def review_detail(request, pk):
                 review.proposal = proposal
                 review.save()
 
-                return redirect(request.path)
+                if "vote_submit_and_random" in request.POST:
+                    next_page = redirect("user_random", proposal.kind.section.slug)
+                    next_page["Location"] += "#invalid_fragment"  # Hack.
+                else:
+                    next_page = redirect(request.path)
+
+                return next_page
             else:
                 message_form = SpeakerCommentForm()
-        elif "message_submit" in request.POST:
+        elif "message_submit" in request.POST and admin:
             message_form = SpeakerCommentForm(request.POST)
             if message_form.is_valid():
 
@@ -254,8 +422,11 @@ def review_detail(request, pk):
                 elif result == "standby":
                     proposal.result.status = "standby"
                     proposal.result.save()
-
-            return redirect(request.path)
+                return redirect(request.path)
+        elif "publish_changes" in request.POST:
+            if admin and proposal.result.status == "accepted":
+                promote_proposal(proposal)
+                return redirect(request.path)
     else:
         initial = {}
         if latest_vote:
@@ -268,10 +439,10 @@ def review_detail(request, pk):
 
     proposal.comment_count = proposal.result.comment_count
     proposal.total_votes = proposal.result.vote_count
+    proposal.plus_two = proposal.result.plus_two
     proposal.plus_one = proposal.result.plus_one
-    proposal.plus_zero = proposal.result.plus_zero
-    proposal.minus_zero = proposal.result.minus_zero
     proposal.minus_one = proposal.result.minus_one
+    proposal.minus_two = proposal.result.minus_two
 
     reviews = Review.objects.filter(proposal=proposal).order_by("-submitted_at")
     messages = proposal.messages.order_by("submitted_at")
@@ -282,7 +453,8 @@ def review_detail(request, pk):
         "reviews": reviews,
         "review_messages": messages,
         "review_form": review_form,
-        "message_form": message_form
+        "message_form": message_form,
+        "is_manager": admin
     })
 
 
@@ -290,7 +462,7 @@ def review_detail(request, pk):
 @require_POST
 def review_delete(request, pk):
     review = get_object_or_404(Review, pk=pk)
-    section_slug = review.section.slug
+    section_slug = review.section
 
     if not request.user.has_perm("reviews.can_manage_%s" % section_slug):
         return access_not_permitted(request)
@@ -307,8 +479,6 @@ def review_status(request, section_slug=None, key=None):
     if not request.user.has_perm("reviews.can_review_%s" % section_slug):
         return access_not_permitted(request)
 
-    VOTE_THRESHOLD = settings.SYMPOSION_VOTE_THRESHOLD
-
     ctx = {
         "section_slug": section_slug,
         "vote_threshold": VOTE_THRESHOLD,
@@ -318,28 +488,7 @@ def review_status(request, section_slug=None, key=None):
     if section_slug:
         queryset = queryset.filter(kind__section__slug=section_slug)
 
-    proposals = {
-        # proposals with at least VOTE_THRESHOLD reviews and at least one +1 and no -1s, sorted by
-        # the 'score'
-        "positive": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__plus_one__gt=0,
-                                    result__minus_one=0).order_by("-result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and at least one -1 and no +1s, reverse
-        # sorted by the 'score'
-        "negative": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_one__gt=0,
-                                    result__plus_one=0).order_by("result__score"),
-        # proposals with at least VOTE_THRESHOLD reviews and neither a +1 or a -1, sorted by total
-        # votes (lowest first)
-        "indifferent": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD, result__minus_one=0,
-                                       result__plus_one=0).order_by("result__vote_count"),
-        # proposals with at least VOTE_THRESHOLD reviews and both a +1 and -1, sorted by total
-        # votes (highest first)
-        "controversial": queryset.filter(result__vote_count__gte=VOTE_THRESHOLD,
-                                         result__plus_one__gt=0, result__minus_one__gt=0)
-        .order_by("-result__vote_count"),
-        # proposals with fewer than VOTE_THRESHOLD reviews
-        "too_few": queryset.filter(result__vote_count__lt=VOTE_THRESHOLD)
-        .order_by("result__vote_count"),
-    }
+    proposals = dict((key, filt(queryset)) for key, filt in REVIEW_STATUS_FILTERS.items())
 
     admin = request.user.has_perm("reviews.can_manage_%s" % section_slug)
 
@@ -499,10 +648,15 @@ def result_notification_send(request, section_slug, status):
         rn.template = notification_template
         rn.to_address = proposal.speaker_email
         rn.from_address = request.POST["from_address"]
-        rn.subject = request.POST["subject"]
+        proposal_context = proposal.notification_email_context()
+        rn.subject = Template(request.POST["subject"]).render(
+            Context({
+                "proposal": proposal_context
+            })
+        )
         rn.body = Template(request.POST["body"]).render(
             Context({
-                "proposal": proposal.notification_email_context()
+                "proposal": proposal_context
             })
         )
         rn.save()

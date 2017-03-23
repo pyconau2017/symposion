@@ -62,6 +62,21 @@ class Room(models.Model):
 
 
 @python_2_unicode_compatible
+class Track(models.Model):
+    name = models.CharField(max_length=80, verbose_name=_("Track"))
+    room = models.ForeignKey(Room)
+    day = models.ForeignKey(Day)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        unique_together = [('room', 'day')]
+        verbose_name = _("Track")
+        verbose_name_plural = _("Tracks")
+
+
+@python_2_unicode_compatible
 class SlotKind(models.Model):
     """
     A slot kind represents what kind a slot is. For example, a slot can be a
@@ -82,11 +97,16 @@ class SlotKind(models.Model):
 @python_2_unicode_compatible
 class Slot(models.Model):
 
-    name = models.CharField(max_length=100, editable=False)
+    name = models.CharField(max_length=512, editable=False)
     day = models.ForeignKey(Day, verbose_name=_("Day"))
     kind = models.ForeignKey(SlotKind, verbose_name=_("Kind"))
     start = models.TimeField(verbose_name=_("Start"))
     end = models.TimeField(verbose_name=_("End"))
+    exclusive = models.BooleanField(
+        default=False,
+        help_text=_("Set to true if this is the only event during this "
+                    "timeslot"),
+    )
     content_override = models.TextField(blank=True, verbose_name=_("Content override"))
     content_override_html = models.TextField(blank=True)
 
@@ -185,19 +205,20 @@ class Presentation(models.Model):
 
     slot = models.OneToOneField(Slot, null=True, blank=True, related_name="content_ptr", verbose_name=_("Slot"))
     title = models.CharField(max_length=100, verbose_name=_("Title"))
-    description = models.TextField(verbose_name=_("Description"))
-    description_html = models.TextField(blank=True)
     abstract = models.TextField(verbose_name=_("Abstract"))
     abstract_html = models.TextField(blank=True)
     speaker = models.ForeignKey(Speaker, related_name="presentations", verbose_name=_("Speaker"))
     additional_speakers = models.ManyToManyField(Speaker, related_name="copresentations",
                                                  blank=True, verbose_name=_("Additional speakers"))
+    unpublish = models.BooleanField(
+        default=False,
+        verbose_name=_("Do not publish"),
+    )
     cancelled = models.BooleanField(default=False, verbose_name=_("Cancelled"))
     proposal_base = models.OneToOneField(ProposalBase, related_name="presentation", verbose_name=_("Proposal base"))
     section = models.ForeignKey(Section, related_name="presentations", verbose_name=_("Section"))
 
     def save(self, *args, **kwargs):
-        self.description_html = parse(self.description)
         self.abstract_html = parse(self.abstract)
         return super(Presentation, self).save(*args, **kwargs)
 
@@ -248,6 +269,12 @@ class Session(models.Model):
             return list(slots)[-1].end
         else:
             return None
+
+    def chair(self):
+        for role in self.sessionrole_set.all():
+            if role.role == SessionRole.SESSION_ROLE_CHAIR:
+                return role
+        return None
 
     def __str__(self):
         start = self.start()
