@@ -39,7 +39,7 @@ class Speaker(models.Model):
         blank=True,
         help_text=_("Please briefly describe your speaking experience. "
                     "The program committee will use this information to "
-                    "provide a balanced probram while also encouraging new "
+                    "provide a balanced program while also encouraging new "
                     "speakers. Where a topic is very technical or of "
                     "significant community interest, we will check that the "
                     "speaker has the right experience. "
