@@ -1,4 +1,4 @@
-from __future__ import unicode_literals
+rom __future__ import unicode_literals
 
 import datetime
 
@@ -91,7 +91,7 @@ class Speaker(models.Model):
     accommodation_assistance = models.BooleanField(
         blank=True,
         default=False,
-        help_text=_("Check this box if you require us to provide you with student-style "
+        help_text=_("Check this box if you require us to provide you with "
                     "accommodation in order to present your proposed sessions."),
         verbose_name=_("Accommodation assistance required"),
     )
