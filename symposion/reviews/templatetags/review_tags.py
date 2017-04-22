@@ -1,4 +1,5 @@
 from django import template
+from django.conf import settings
 
 from symposion.reviews.models import ReviewAssignment
 
@@ -11,3 +12,9 @@ def review_assignments(context):
     request = context["request"]
     assignments = ReviewAssignment.objects.filter(user=request.user)
     return assignments
+
+import bleach
+
+@register.filter("bleach")
+def _bleach(text):
+    return bleach.clean(text, tags=settings.BLEACH_ALLOWED_TAGS)
