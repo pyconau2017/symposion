@@ -6,7 +6,8 @@ from .views import (
     speaker_create_token,
     speaker_edit,
     speaker_profile,
-    speaker_create_staff
+    speaker_create_staff,
+    speaker_communique
 )
 
 urlpatterns = [
@@ -15,4 +16,5 @@ urlpatterns = [
     url(r"^edit/(?:(?P<pk>\d+)/)?$", speaker_edit, name="speaker_edit"),
     url(r"^profile/(?P<pk>\d+)/$", speaker_profile, name="speaker_profile"),
     url(r"^staff/create/(\d+)/$", speaker_create_staff, name="speaker_create_staff"),
+    url(r"^communique/$", speaker_communique, name="speaker_communique")
 ]
