@@ -13,6 +13,9 @@ from symposion.proposals.models import ProposalBase
 from symposion.speakers.forms import SpeakerForm
 from symposion.speakers.models import Speaker
 
+from symposion.reviews.models import NotificationTemplate
+from django.core.mail import send_mail, EmailMessage
+from django.conf import settings
 
 @login_required
 def speaker_create(request):
@@ -136,3 +139,38 @@ def speaker_profile(request, pk):
         "speaker": speaker,
         "presentations": presentations,
     })
+
+
+
+@login_required
+def speaker_communique(request, pk=None):
+    """
+    This puts up a page that lets an admin / staff person compose and send an email
+    to all speakers.  During CFP period, this will go out to all who have submitted
+    proposals.
+    """
+    if not request.user.is_staff:
+        raise Http404
+
+    # Sending a message already composed?
+    if request.method == "POST":
+
+        if settings.DEBUG:
+            recipients = [ '"%s" <%s>"' % (sp.name, sp.user.email) for sp in Speaker.objects.filter(user__is_staff=True).all()]
+        else:
+            recipients = [ '"%s" <%s>"' % (sp.name, sp.user.email) for sp in Speaker.objects.all()]
+
+        em = EmailMessage(from_email=settings.DEFAULT_FROM_EMAIL,
+                          to=[settings.DEFAULT_FROM_EMAIL],
+                          bcc=recipients,
+                          subject=request.POST['msg_title'],
+                          body=request.POST['msg_body'])
+
+        em.send()
+        return redirect("dashboard")
+
+    ctx = dict()
+    return render(request, "symposion/speakers/communique.html", ctx)
+
+
+
