@@ -157,6 +157,8 @@ class Review(models.Model):
             )
             if not created:
                 LatestVote.objects.filter(pk=vote.pk).update(vote=self.vote)
+                # RJ: note that "previous" does not appear to be consumed by
+                # update_vote()
                 self.proposal.result.update_vote(self.vote, previous=vote.vote)
             else:
                 self.proposal.result.update_vote(self.vote)
@@ -168,10 +170,9 @@ class Review(models.Model):
             proposal=self.proposal,
             user=self.user,
         )
-        try:
-            # find the latest review
-            latest = user_reviews.exclude(pk=self.pk).order_by("-submitted_at")[0]
-        except IndexError:
+        # find all the reviews
+        reviews = user_reviews.order_by("-submitted_at")
+        if len(reviews) == 1:
             # did not find a latest which means this must be the only one.
             # treat it as a last, but delete the latest vote.
             self.proposal.result.update_vote(self.vote, removal=True)
@@ -179,23 +180,25 @@ class Review(models.Model):
             lv.delete()
         else:
             # handle that we've found a latest vote
-            # check if self is the lastest vote
+            latest = reviews[0]
+            # check if self is the latest vote
             if self == latest:
                 # self is the latest review; revert the latest vote to the
                 # previous vote
                 previous = user_reviews.filter(submitted_at__lt=self.submitted_at)\
                     .order_by("-submitted_at")[0]
-                self.proposal.result.update_vote(self.vote, previous=previous.vote, removal=True)
                 lv = LatestVote.objects.filter(proposal=self.proposal, user=self.user)
                 lv.update(
                     vote=previous.vote,
                     submitted_at=previous.submitted_at,
                 )
+                self.proposal.result.update_vote()
             else:
                 # self is not the latest review so we just need to decrement
                 # the comment count
                 self.proposal.result.comment_count = models.F("comment_count") - 1
                 self.proposal.result.save()
+
         # in all cases we need to delete the review; let's do it!
         super(Review, self).delete()
 
@@ -272,6 +275,8 @@ class ProposalResult(models.Model):
             result, created = cls._default_manager.get_or_create(proposal=proposal)
             result.update_vote()
 
+    # RJ: note that a bunch of code passes in arguments and keywords to this
+    # function which are ignored by this code
     def update_vote(self, *a, **k):
         proposal = self.proposal
         self.comment_count = Review.objects.filter(proposal=proposal).count()
