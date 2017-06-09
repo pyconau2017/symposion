@@ -160,13 +160,15 @@ def speaker_communique(request, pk=None):
         else:
             recipients = [ '"%s" <%s>"' % (sp.name, sp.user.email) for sp in Speaker.objects.all()]
 
-        em = EmailMessage(from_email=settings.DEFAULT_FROM_EMAIL,
+        recipients = filter(lambda x: x is not None and x.user is not None, recipients)
+        if recipients:
+            em = EmailMessage(from_email=settings.DEFAULT_FROM_EMAIL,
                           to=[settings.DEFAULT_FROM_EMAIL],
                           bcc=recipients,
                           subject=request.POST['msg_title'],
                           body=request.POST['msg_body'])
 
-        em.send()
+            em.send()
         return redirect("dashboard")
 
     ctx = dict()
