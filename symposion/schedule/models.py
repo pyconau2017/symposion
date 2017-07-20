@@ -168,7 +168,10 @@ class Slot(models.Model):
 
     def save(self, *args, **kwargs):
         roomlist = ' '.join(map(lambda r: r.__unicode__(), self.rooms))
-        self.name = "%s %s (%s - %s) %s" % (self.day, self.kind, self.start, self.end, roomlist)
+        self.name = "%s %s (%s - %s) %s" % (self.day, self.kind,
+                                            self.start.strftime("%H:%M"),
+                                            self.end.strftime("%H:%M"),
+                                            roomlist)
         self.content_override_html = parse(self.content_override)
         super(Slot, self).save(*args, **kwargs)
 
