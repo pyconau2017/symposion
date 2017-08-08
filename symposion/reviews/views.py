@@ -1,6 +1,6 @@
 import csv
 import random
-import StringIO
+from io import StringIO
 
 from django.core.mail import send_mass_mail
 from django.db.models import Q
@@ -292,8 +292,8 @@ def review_admin(request, section_slug):
                     user=user,
                     proposal__kind__section__slug=section_slug,
                 )
-                print section_slug
-                print [vote.proposal.kind.section.slug for vote in user_votes]
+                print (section_slug)
+                print ([vote.proposal.kind.section.slug for vote in user_votes])
                 user.total_votes = user_votes.exclude(
                     vote=LatestVote.VOTES.ABSTAIN,
                 ).count()
