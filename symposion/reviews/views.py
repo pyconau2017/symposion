@@ -26,6 +26,7 @@ from symposion.reviews.models import (
     ResultNotification, promote_proposal
 )
 
+import math
 
 def access_not_permitted(request):
     return render(request, "symposion/reviews/access_not_permitted.html")
@@ -234,7 +235,7 @@ def review_random_proposal(request, section_slug):
         proposals.sort(key = lambda proposal: proposal.total_votes)
         # The first half is the median or less.
         # The +1 means we round _up_.
-        proposals = proposals[:(len(proposals) + 1) / 2]
+        proposals = proposals[:round(float(len(proposals)) / 2)]
 
     # Realistically, there shouldn't be all that many proposals to choose
     # from, so this should be cheap.
