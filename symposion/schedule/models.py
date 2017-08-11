@@ -217,6 +217,7 @@ class Presentation(models.Model):
     cancelled = models.BooleanField(default=False, verbose_name=_("Cancelled"))
     proposal_base = models.OneToOneField(ProposalBase, related_name="presentation", verbose_name=_("Proposal base"))
     section = models.ForeignKey(Section, related_name="presentations", verbose_name=_("Section"))
+    video_url = models.CharField(max_length=255, null=False, blank=True)
 
     def save(self, *args, **kwargs):
         self.abstract_html = parse(self.abstract)
